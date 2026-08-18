@@ -1,65 +1,61 @@
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
 import json
 import math
+import urllib.parse
+
+
+def evaluate_function(function_string, x):
+
+    allowed = {
+        "__builtins__": {},
+        "x": x,
+        "math": math,
+        "ln": math.log,
+        "log": math.log,
+        "exp": math.exp,
+        "sin": math.sin,
+        "cos": math.cos,
+        "tan": math.tan
+    }
+
+    return eval(function_string, allowed)
 
 
 def golden_section_search(function_string, start, end, tolerance):
-
-    allowed_functions = {
-        "math": math,
-        "sin": math.sin,
-        "cos": math.cos,
-        "tan": math.tan,
-        "exp": math.exp,
-        "log": math.log,
-        "ln": math.log
-    }
-
-    def f(x):
-
-        return eval(
-            function_string,
-            {
-                "__builtins__": None,
-                "x": x,
-                **allowed_functions
-            }
-        )
 
     phi = (math.sqrt(5) - 1) / 2
 
     a = start
     b = end
 
-    initial_interval_length = b - a
+    initial_length = b - a
 
-    if tolerance >= initial_interval_length:
-
-        theoretical_k = 0
-
-    else:
-
-        theoretical_k = math.ceil(
-            math.log(tolerance / initial_interval_length)
-            / math.log(phi)
-        )
+    # Theoretical K
+    theoretical_k = math.ceil(
+        math.log(tolerance / initial_length)
+        / math.log(phi)
+    )
 
     iteration_table = []
 
-    k = 0
+    iteration = 0
 
     while abs(b - a) > tolerance:
 
-        k += 1
+        iteration += 1
 
         x1 = b - phi * (b - a)
-
         x2 = a + phi * (b - a)
 
-        f_x1 = f(x1)
+        f_x1 = evaluate_function(
+            function_string,
+            x1
+        )
 
-        f_x2 = f(x2)
+        f_x2 = evaluate_function(
+            function_string,
+            x2
+        )
 
         if f_x1 < f_x2:
 
@@ -71,37 +67,38 @@ def golden_section_search(function_string, start, end, tolerance):
 
         iteration_table.append({
 
-            "iteration": k,
+            "iteration": iteration,
+
             "x1": x1,
+
             "x2": x2,
+
             "f(x1)": f_x1,
+
             "f(x2)": f_x2,
+
             "a": a,
+
             "b": b,
+
             "interval_length": b - a
 
         })
 
     x_min = (a + b) / 2
 
-    f_min = f(x_min)
+    f_min = evaluate_function(
+        function_string,
+        x_min
+    )
 
     return {
-
-        "function": function_string,
-
-        "initial_interval": [
-            start,
-            end
-        ],
-
-        "tolerance": tolerance,
 
         "minimum_x": x_min,
 
         "minimum_f": f_min,
 
-        "iterations": k,
+        "iterations": iteration,
 
         "theoretical_k": theoretical_k,
 
@@ -115,15 +112,77 @@ def golden_section_search(function_string, start, end, tolerance):
     }
 
 
+def generate_graph_data(
+    function_string,
+    start,
+    end
+):
+
+    interval = end - start
+
+    graph_start = start - interval * 0.1
+
+    graph_end = end + interval * 0.1
+
+    number_of_points = 500
+
+    x_values = []
+
+    y_values = []
+
+    for i in range(number_of_points):
+
+        x = (
+            graph_start
+            +
+            (
+                graph_end - graph_start
+            )
+            * i
+            /
+            (number_of_points - 1)
+        )
+
+        try:
+
+            y = evaluate_function(
+                function_string,
+                x
+            )
+
+            if math.isfinite(y):
+
+                x_values.append(x)
+
+                y_values.append(y)
+
+        except Exception:
+
+            continue
+
+    return {
+
+        "x": x_values,
+
+        "y": y_values
+
+    }
+
+
 class handler(BaseHTTPRequestHandler):
+
 
     def do_GET(self):
 
         try:
 
-            parsed_url = urlparse(self.path)
+            parsed_url = urllib.parse.urlparse(
+                self.path
+            )
 
-            query = parse_qs(parsed_url.query)
+            query = urllib.parse.parse_qs(
+                parsed_url.query
+            )
 
             function_string = query.get(
                 "function",
@@ -131,28 +190,42 @@ class handler(BaseHTTPRequestHandler):
             )[0]
 
             start = float(
-                query.get("start", ["1"])[0]
+                query.get(
+                    "start",
+                    ["1"]
+                )[0]
             )
 
             end = float(
-                query.get("end", ["10"])[0]
+                query.get(
+                    "end",
+                    ["10"]
+                )[0]
             )
 
             tolerance = float(
-                query.get("tolerance", ["0.0001"])[0]
+                query.get(
+                    "tolerance",
+                    ["0.0001"]
+                )[0]
             )
+
 
             if start >= end:
 
                 raise ValueError(
-                    "Start of interval must be smaller than end of interval."
+                    "Start of interval must be less than end."
                 )
+
 
             if tolerance <= 0:
 
                 raise ValueError(
                     "Tolerance must be greater than zero."
                 )
+
+
+            # Golden Section Search
 
             result = golden_section_search(
                 function_string,
@@ -161,6 +234,26 @@ class handler(BaseHTTPRequestHandler):
                 tolerance
             )
 
+
+            # Graph data
+
+            graph = generate_graph_data(
+                function_string,
+                start,
+                end
+            )
+
+
+            # Combine everything
+
+            result["graph"] = graph
+
+
+            response = json.dumps(
+                result
+            )
+
+
             self.send_response(200)
 
             self.send_header(
@@ -168,15 +261,28 @@ class handler(BaseHTTPRequestHandler):
                 "application/json"
             )
 
+            self.send_header(
+                "Access-Control-Allow-Origin",
+                "*"
+            )
+
             self.end_headers()
 
             self.wfile.write(
-                json.dumps(result).encode()
+                response.encode()
             )
+
 
         except Exception as error:
 
-            self.send_response(500)
+            response = json.dumps({
+
+                "error": str(error)
+
+            })
+
+
+            self.send_response(400)
 
             self.send_header(
                 "Content-Type",
@@ -185,10 +291,6 @@ class handler(BaseHTTPRequestHandler):
 
             self.end_headers()
 
-            response = {
-                "error": str(error)
-            }
-
             self.wfile.write(
-                json.dumps(response).encode()
+                response.encode()
             )
