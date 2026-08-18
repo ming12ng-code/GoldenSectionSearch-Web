@@ -2,64 +2,48 @@
 <html>
 <head>
     <title>Golden Section Search</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-
-        h1 {
-            text-align: center;
-        }
-
-        label {
-            display: block;
-            margin-top: 20px;
-            font-weight: bold;
-        }
-
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            box-sizing: border-box;
-            font-size: 16px;
-        }
-
-        button {
-            margin-top: 25px;
-            padding: 12px 25px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-    </style>
 </head>
 
 <body>
 
     <h1>Golden Section Search</h1>
 
-    <label>Objective Function</label>
+    <p>Objective Function</p>
     <input type="text" id="function" value="ln(x)-4*x+5">
 
-    <label>Start of interval</label>
+    <p>Start of interval</p>
     <input type="number" id="start" value="1">
 
-    <label>End of interval</label>
+    <p>End of interval</p>
     <input type="number" id="end" value="10">
 
-    <label>Tolerance</label>
+    <p>Tolerance</p>
     <input type="number" id="tolerance" value="0.0001" step="any">
+
+    <br><br>
 
     <button onclick="calculate()">Calculate</button>
 
     <script>
-        function calculate() {
-            alert("Calculate button is working!");
+
+        async function calculate() {
+
+            try {
+
+                const response = await fetch("/api");
+
+                const data = await response.json();
+
+                alert(data.message);
+
+            } catch (error) {
+
+                alert("Error connecting to Python API");
+
+            }
+
         }
+
     </script>
 
 </body>
