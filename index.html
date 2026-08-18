@@ -8,142 +8,81 @@
     <style>
 
         body {
-
             font-family: Arial, sans-serif;
-
             max-width: 1100px;
-
             margin: 40px auto;
-
             padding: 20px;
-
         }
-
 
         h1 {
-
             text-align: center;
-
         }
-
 
         label {
-
             display: block;
-
             margin-top: 18px;
-
             font-weight: bold;
-
         }
-
 
         input {
-
             width: 100%;
-
             padding: 10px;
-
             margin-top: 5px;
-
             box-sizing: border-box;
-
             font-size: 16px;
-
         }
-
 
         button {
-
             margin-top: 25px;
-
             padding: 12px 25px;
-
             font-size: 16px;
-
             cursor: pointer;
-
         }
-
 
         #results {
-
             margin-top: 35px;
-
         }
-
 
         .result-box {
-
             background: #f4f4f4;
-
             padding: 15px;
-
             margin-top: 10px;
-
             border-radius: 5px;
-
         }
-
 
         table {
-
             width: 100%;
-
             border-collapse: collapse;
-
             margin-top: 20px;
-
             font-size: 14px;
-
         }
-
 
         th,
         td {
-
             border: 1px solid #ccc;
-
             padding: 8px;
-
             text-align: center;
-
         }
-
 
         th {
-
             background: #eeeeee;
-
         }
-
 
         #error {
-
             color: red;
-
             margin-top: 20px;
-
             font-weight: bold;
-
         }
-
 
         #graph {
-
             margin-top: 40px;
-
         }
 
-
-        canvas {
-
+        #graphCanvas {
             width: 100%;
-
             height: 500px;
-
             border: 1px solid #ccc;
-
+            display: block;
         }
 
     </style>
@@ -212,42 +151,32 @@
 
 
         <div class="result-box">
-
             Minimum x =
             <span id="minimum-x"></span>
-
         </div>
 
 
         <div class="result-box">
-
             Minimum f(x) =
             <span id="minimum-f"></span>
-
         </div>
 
 
         <div class="result-box">
-
             Iterations =
             <span id="iterations"></span>
-
         </div>
 
 
         <div class="result-box">
-
             Theoretical K =
             <span id="theoretical-k"></span>
-
         </div>
 
 
         <div class="result-box">
-
             Final interval =
             <span id="final-interval"></span>
-
         </div>
 
 
@@ -261,19 +190,12 @@
                 <tr>
 
                     <th>Iteration</th>
-
                     <th>x1</th>
-
                     <th>x2</th>
-
                     <th>f(x1)</th>
-
                     <th>f(x2)</th>
-
                     <th>a</th>
-
                     <th>b</th>
-
                     <th>Interval Length</th>
 
                 </tr>
@@ -335,21 +257,13 @@ async function calculate() {
 
 
         const response = await fetch(
-
             "/api?" +
-
             new URLSearchParams({
-
                 function: functionString,
-
                 start: start,
-
                 end: end,
-
                 tolerance: tolerance
-
             })
-
         );
 
 
@@ -380,15 +294,10 @@ async function calculate() {
 
 
         document.getElementById("final-interval").textContent =
-
             "[" +
-
             data.final_interval[0] +
-
             ", " +
-
             data.final_interval[1] +
-
             "]";
 
 
@@ -409,19 +318,12 @@ async function calculate() {
             tr.innerHTML =
 
                 "<td>" + row.iteration + "</td>" +
-
                 "<td>" + row.x1 + "</td>" +
-
                 "<td>" + row.x2 + "</td>" +
-
                 "<td>" + row["f(x1)"] + "</td>" +
-
                 "<td>" + row["f(x2)"] + "</td>" +
-
                 "<td>" + row.a + "</td>" +
-
                 "<td>" + row.b + "</td>" +
-
                 "<td>" + row.interval_length + "</td>";
 
 
@@ -432,17 +334,11 @@ async function calculate() {
 
 
         drawGraph(
-
             functionString,
-
             start,
-
             end,
-
             data.minimum_x,
-
             data.minimum_f
-
         );
 
 
@@ -453,7 +349,6 @@ async function calculate() {
 
 
         document.getElementById("error").textContent =
-
             "Error: " + error.message;
 
 
@@ -461,6 +356,10 @@ async function calculate() {
 
 }
 
+
+/* ==========================================
+   GRAPH
+   ========================================== */
 
 
 function drawGraph(
@@ -480,12 +379,19 @@ function drawGraph(
         canvas.getContext("2d");
 
 
-    const width = canvas.width =
-        canvas.clientWidth * 2;
+    /*
+       Important:
+       Canvas needs a real width and height.
+    */
+
+    const width = 1000;
+
+    const height = 500;
 
 
-    const height = canvas.height =
-        canvas.clientHeight * 2;
+    canvas.width = width;
+
+    canvas.height = height;
 
 
     ctx.clearRect(
@@ -496,86 +402,115 @@ function drawGraph(
     );
 
 
+    /*
+       Convert Python-style function
+       into JavaScript function
+    */
+
+    let expression =
+        functionString;
+
+
+    expression =
+        expression.replace(
+            /ln\(/g,
+            "Math.log("
+        );
+
+
+    expression =
+        expression.replace(
+            /log\(/g,
+            "Math.log("
+        );
+
+
+    expression =
+        expression.replace(
+            /sin\(/g,
+            "Math.sin("
+        );
+
+
+    expression =
+        expression.replace(
+            /cos\(/g,
+            "Math.cos("
+        );
+
+
+    expression =
+        expression.replace(
+            /tan\(/g,
+            "Math.tan("
+        );
+
+
+    expression =
+        expression.replace(
+            /exp\(/g,
+            "Math.exp("
+        );
+
+
+    expression =
+        expression.replace(
+            /\^/g,
+            "**"
+        );
+
+
+    /*
+       Create JavaScript function
+    */
+
+    let functionForGraph;
+
+
+    try {
+
+
+        functionForGraph =
+            new Function(
+                "x",
+                "return " + expression
+            );
+
+
+    }
+
+    catch (error) {
+
+
+        document.getElementById("error").textContent =
+            "Graph error: Invalid function.";
+
+
+        return;
+
+    }
+
+
+    /*
+       Create graph points
+    */
+
     const points = [];
 
 
-    const numberOfPoints = 300;
+    const numberOfPoints = 500;
 
 
-    const range = end - start;
+    const interval =
+        end - start;
 
 
     const graphStart =
-        start - range * 0.1;
+        start - interval * 0.1;
 
 
     const graphEnd =
-        end + range * 0.1;
-
-
-    function evaluateFunction(x) {
-
-        try {
-
-            let expression =
-                functionString;
-
-            expression =
-                expression.replace(
-                    /ln\(/g,
-                    "Math.log("
-                );
-
-            expression =
-                expression.replace(
-                    /log\(/g,
-                    "Math.log("
-                );
-
-            expression =
-                expression.replace(
-                    /sin\(/g,
-                    "Math.sin("
-                );
-
-            expression =
-                expression.replace(
-                    /cos\(/g,
-                    "Math.cos("
-                );
-
-            expression =
-                expression.replace(
-                    /tan\(/g,
-                    "Math.tan("
-                );
-
-            expression =
-                expression.replace(
-                    /exp\(/g,
-                    "Math.exp("
-                );
-
-            expression =
-                expression.replace(
-                    /\^/g,
-                    "**"
-                );
-
-            return Function(
-                "x",
-                "return " + expression
-            )(x);
-
-        }
-
-        catch {
-
-            return NaN;
-
-        }
-
-    }
+        end + interval * 0.1;
 
 
     let minY = Infinity;
@@ -591,18 +526,31 @@ function drawGraph(
 
 
         const x =
-
             graphStart +
-
-            (graphEnd - graphStart) *
-
+            (
+                graphEnd - graphStart
+            ) *
             i /
+            (
+                numberOfPoints - 1
+            );
 
-            (numberOfPoints - 1);
+
+        let y;
 
 
-        const y =
-            evaluateFunction(x);
+        try {
+
+            y =
+                functionForGraph(x);
+
+        }
+
+        catch {
+
+            y = NaN;
+
+        }
 
 
         if (
@@ -634,11 +582,31 @@ function drawGraph(
     }
 
 
-    if (
-        points.length === 0
-    ) {
+    /*
+       If no points were generated
+    */
+
+    if (points.length === 0) {
+
+
+        document.getElementById("error").textContent =
+            "Graph error: Function cannot be plotted in this interval.";
+
 
         return;
+
+    }
+
+
+    /*
+       Prevent division by zero
+    */
+
+    if (minY === maxY) {
+
+        minY -= 1;
+
+        maxY += 1;
 
     }
 
@@ -646,17 +614,28 @@ function drawGraph(
     const padding = 60;
 
 
+    /*
+       Convert mathematical coordinates
+       to canvas coordinates
+    */
+
     function mapX(x) {
+
 
         return (
 
             padding +
 
-            (x - graphStart) /
+            (
+                x - graphStart
+            ) /
+            (
+                graphEnd - graphStart
+            ) *
 
-            (graphEnd - graphStart) *
-
-            (width - 2 * padding)
+            (
+                width - 2 * padding
+            )
 
         );
 
@@ -665,24 +644,43 @@ function drawGraph(
 
     function mapY(y) {
 
+
         return (
 
             height -
-
             padding -
 
-            (y - minY) /
+            (
+                y - minY
+            ) /
+            (
+                maxY - minY
+            ) *
 
-            (maxY - minY) *
-
-            (height - 2 * padding)
+            (
+                height - 2 * padding
+            )
 
         );
 
     }
 
 
-    // Draw axes
+    /*
+       Draw background
+    */
+
+    ctx.clearRect(
+        0,
+        0,
+        width,
+        height
+    );
+
+
+    /*
+       Draw X axis
+    */
 
     ctx.beginPath();
 
@@ -699,6 +697,10 @@ function drawGraph(
     ctx.stroke();
 
 
+    /*
+       Draw Y axis
+    */
+
     ctx.beginPath();
 
     ctx.moveTo(
@@ -714,7 +716,9 @@ function drawGraph(
     ctx.stroke();
 
 
-    // Draw function
+    /*
+       Draw function curve
+    */
 
     ctx.beginPath();
 
@@ -762,13 +766,15 @@ function drawGraph(
     ctx.stroke();
 
 
-    // Draw minimum point
+    /*
+       Draw minimum point
+    */
 
-    const minPX =
+    const minimumPX =
         mapX(minimumX);
 
 
-    const minPY =
+    const minimumPY =
         mapY(minimumY);
 
 
@@ -776,9 +782,9 @@ function drawGraph(
 
 
     ctx.arc(
-        minPX,
-        minPY,
-        10,
+        minimumPX,
+        minimumPY,
+        8,
         0,
         2 * Math.PI
     );
@@ -787,29 +793,49 @@ function drawGraph(
     ctx.fill();
 
 
-    // Labels
+    /*
+       Draw minimum label
+    */
 
-    ctx.font = "24px Arial";
+    ctx.font =
+        "18px Arial";
 
 
     ctx.fillText(
         "Minimum",
-        minPX + 15,
-        minPY
+        minimumPX + 12,
+        minimumPY - 20
     );
 
 
     ctx.fillText(
-        "x = " + minimumX.toFixed(4),
-        minPX + 15,
-        minPY + 30
+        "x = " +
+        Number(minimumX).toFixed(4),
+        minimumPX + 12,
+        minimumPY + 5
     );
 
 
     ctx.fillText(
-        "f(x) = " + minimumY.toFixed(4),
-        minPX + 15,
-        minPY + 60
+        "f(x) = " +
+        Number(minimumY).toFixed(4),
+        minimumPX + 12,
+        minimumPY + 30
+    );
+
+
+    /*
+       Draw graph title
+    */
+
+    ctx.font =
+        "20px Arial";
+
+
+    ctx.fillText(
+        "f(x) = " + functionString,
+        padding,
+        30
     );
 
 
