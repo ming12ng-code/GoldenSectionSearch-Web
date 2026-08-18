@@ -5,11 +5,14 @@
 
     <title>Golden Section Search</title>
 
+    <!-- Plotly -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+
     <style>
 
         body {
             font-family: Arial, sans-serif;
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 40px auto;
             padding: 20px;
         }
@@ -78,11 +81,9 @@
             margin-top: 40px;
         }
 
-        #graphCanvas {
+        #plot {
             width: 100%;
-            height: 500px;
-            border: 1px solid #ccc;
-            display: block;
+            height: 600px;
         }
 
     </style>
@@ -94,6 +95,11 @@
 
 
     <h1>Golden Section Search</h1>
+
+
+    <!-- =========================
+         INPUT
+    ========================== -->
 
 
     <label>Objective Function</label>
@@ -145,39 +151,59 @@
     <div id="error"></div>
 
 
+    <!-- =========================
+         RESULTS
+    ========================== -->
+
+
     <div id="results">
 
         <h2>Results</h2>
 
 
         <div class="result-box">
+
             Minimum x =
             <span id="minimum-x"></span>
+
         </div>
 
 
         <div class="result-box">
+
             Minimum f(x) =
             <span id="minimum-f"></span>
+
         </div>
 
 
         <div class="result-box">
+
             Iterations =
             <span id="iterations"></span>
+
         </div>
 
 
         <div class="result-box">
+
             Theoretical K =
             <span id="theoretical-k"></span>
+
         </div>
 
 
         <div class="result-box">
+
             Final interval =
             <span id="final-interval"></span>
+
         </div>
+
+
+        <!-- =========================
+             ITERATION TABLE
+        ========================== -->
 
 
         <h2>Iteration Table</h2>
@@ -190,12 +216,19 @@
                 <tr>
 
                     <th>Iteration</th>
+
                     <th>x1</th>
+
                     <th>x2</th>
+
                     <th>f(x1)</th>
+
                     <th>f(x2)</th>
+
                     <th>a</th>
+
                     <th>b</th>
+
                     <th>Interval Length</th>
 
                 </tr>
@@ -210,11 +243,16 @@
         </table>
 
 
+        <!-- =========================
+             GRAPH
+        ========================== -->
+
+
         <div id="graph">
 
             <h2>Graph</h2>
 
-            <canvas id="graphCanvas"></canvas>
+            <div id="plot"></div>
 
         </div>
 
@@ -222,7 +260,13 @@
     </div>
 
 
+
 <script>
+
+
+/* =====================================================
+   CALCULATE
+===================================================== */
 
 
 async function calculate() {
@@ -256,89 +300,170 @@ async function calculate() {
     try {
 
 
+        /* =========================
+           CALL PYTHON API
+        ========================== */
+
+
         const response = await fetch(
+
             "/api?" +
+
             new URLSearchParams({
+
                 function: functionString,
+
                 start: start,
+
                 end: end,
+
                 tolerance: tolerance
+
             })
+
         );
 
 
-        const data = await response.json();
+        const data =
+            await response.json();
 
 
         if (!response.ok) {
 
-            throw new Error(data.error);
+            throw new Error(
+                data.error
+            );
 
         }
 
 
-        document.getElementById("minimum-x").textContent =
+        /* =========================
+           RESULTS
+        ========================== */
+
+
+        document.getElementById(
+            "minimum-x"
+        ).textContent =
             data.minimum_x;
 
 
-        document.getElementById("minimum-f").textContent =
+        document.getElementById(
+            "minimum-f"
+        ).textContent =
             data.minimum_f;
 
 
-        document.getElementById("iterations").textContent =
+        document.getElementById(
+            "iterations"
+        ).textContent =
             data.iterations;
 
 
-        document.getElementById("theoretical-k").textContent =
+        document.getElementById(
+            "theoretical-k"
+        ).textContent =
             data.theoretical_k;
 
 
-        document.getElementById("final-interval").textContent =
+        document.getElementById(
+            "final-interval"
+        ).textContent =
+
             "[" +
+
             data.final_interval[0] +
+
             ", " +
+
             data.final_interval[1] +
+
             "]";
 
 
+        /* =========================
+           ITERATION TABLE
+        ========================== */
+
+
         const table =
-            document.getElementById("iteration-table");
+            document.getElementById(
+                "iteration-table"
+            );
 
 
         table.innerHTML = "";
 
 
-        data.iteration_table.forEach(function(row) {
+        data.iteration_table.forEach(
+            function(row) {
 
 
-            const tr =
-                document.createElement("tr");
+                const tr =
+                    document.createElement(
+                        "tr"
+                    );
 
 
-            tr.innerHTML =
+                tr.innerHTML =
 
-                "<td>" + row.iteration + "</td>" +
-                "<td>" + row.x1 + "</td>" +
-                "<td>" + row.x2 + "</td>" +
-                "<td>" + row["f(x1)"] + "</td>" +
-                "<td>" + row["f(x2)"] + "</td>" +
-                "<td>" + row.a + "</td>" +
-                "<td>" + row.b + "</td>" +
-                "<td>" + row.interval_length + "</td>";
+                    "<td>" +
+                    row.iteration +
+                    "</td>" +
+
+                    "<td>" +
+                    row.x1 +
+                    "</td>" +
+
+                    "<td>" +
+                    row.x2 +
+                    "</td>" +
+
+                    "<td>" +
+                    row["f(x1)"] +
+                    "</td>" +
+
+                    "<td>" +
+                    row["f(x2)"] +
+                    "</td>" +
+
+                    "<td>" +
+                    row.a +
+                    "</td>" +
+
+                    "<td>" +
+                    row.b +
+                    "</td>" +
+
+                    "<td>" +
+                    row.interval_length +
+                    "</td>";
 
 
-            table.appendChild(tr);
+                table.appendChild(tr);
 
 
-        });
+            }
+        );
+
+
+        /* =========================
+           DRAW GRAPH
+        ========================== */
 
 
         drawGraph(
+
             functionString,
+
             start,
+
             end,
+
             data.minimum_x,
+
             data.minimum_f
+
         );
 
 
@@ -348,8 +473,12 @@ async function calculate() {
     catch (error) {
 
 
-        document.getElementById("error").textContent =
-            "Error: " + error.message;
+        document.getElementById(
+            "error"
+        ).textContent =
+
+            "Error: " +
+            error.message;
 
 
     }
@@ -357,9 +486,10 @@ async function calculate() {
 }
 
 
-/* ==========================================
-   GRAPH
-   ========================================== */
+
+/* =====================================================
+   GRAPH FUNCTION
+===================================================== */
 
 
 function drawGraph(
@@ -371,41 +501,11 @@ function drawGraph(
 ) {
 
 
-    const canvas =
-        document.getElementById("graphCanvas");
-
-
-    const ctx =
-        canvas.getContext("2d");
-
-
     /*
-       Important:
-       Canvas needs a real width and height.
+       Convert mathematical notation
+       into JavaScript notation.
     */
 
-    const width = 1000;
-
-    const height = 500;
-
-
-    canvas.width = width;
-
-    canvas.height = height;
-
-
-    ctx.clearRect(
-        0,
-        0,
-        width,
-        height
-    );
-
-
-    /*
-       Convert Python-style function
-       into JavaScript function
-    */
 
     let expression =
         functionString;
@@ -413,42 +513,42 @@ function drawGraph(
 
     expression =
         expression.replace(
-            /ln\(/g,
+            /ln\(/gi,
             "Math.log("
         );
 
 
     expression =
         expression.replace(
-            /log\(/g,
+            /log\(/gi,
             "Math.log("
         );
 
 
     expression =
         expression.replace(
-            /sin\(/g,
+            /sin\(/gi,
             "Math.sin("
         );
 
 
     expression =
         expression.replace(
-            /cos\(/g,
+            /cos\(/gi,
             "Math.cos("
         );
 
 
     expression =
         expression.replace(
-            /tan\(/g,
+            /tan\(/gi,
             "Math.tan("
         );
 
 
     expression =
         expression.replace(
-            /exp\(/g,
+            /exp\(/gi,
             "Math.exp("
         );
 
@@ -461,28 +561,34 @@ function drawGraph(
 
 
     /*
-       Create JavaScript function
+       Create function
     */
 
-    let functionForGraph;
+
+    let f;
 
 
     try {
 
 
-        functionForGraph =
+        f =
             new Function(
                 "x",
-                "return " + expression
+                "return " +
+                expression
             );
 
 
     }
 
+
     catch (error) {
 
 
-        document.getElementById("error").textContent =
+        document.getElementById(
+            "error"
+        ).textContent =
+
             "Graph error: Invalid function.";
 
 
@@ -492,10 +598,13 @@ function drawGraph(
 
 
     /*
-       Create graph points
+       Generate X values
     */
 
-    const points = [];
+
+    const xValues = [];
+
+    const yValues = [];
 
 
     const numberOfPoints = 500;
@@ -506,16 +615,13 @@ function drawGraph(
 
 
     const graphStart =
-        start - interval * 0.1;
+        start -
+        interval * 0.1;
 
 
     const graphEnd =
-        end + interval * 0.1;
-
-
-    let minY = Infinity;
-
-    let maxY = -Infinity;
+        end +
+        interval * 0.1;
 
 
     for (
@@ -526,11 +632,16 @@ function drawGraph(
 
 
         const x =
+
             graphStart +
+
             (
-                graphEnd - graphStart
+                graphEnd -
+                graphStart
             ) *
+
             i /
+
             (
                 numberOfPoints - 1
             );
@@ -541,8 +652,7 @@ function drawGraph(
 
         try {
 
-            y =
-                functionForGraph(x);
+            y = f(x);
 
         }
 
@@ -553,29 +663,20 @@ function drawGraph(
         }
 
 
+        /*
+           Only keep valid points
+        */
+
+
         if (
             Number.isFinite(y)
         ) {
 
 
-            points.push({
-                x: x,
-                y: y
-            });
+            xValues.push(x);
 
+            yValues.push(y);
 
-            minY =
-                Math.min(
-                    minY,
-                    y
-                );
-
-
-            maxY =
-                Math.max(
-                    maxY,
-                    y
-                );
 
         }
 
@@ -583,15 +684,20 @@ function drawGraph(
 
 
     /*
-       If no points were generated
+       Make sure we have data
     */
 
-    if (points.length === 0) {
+
+    if (
+        xValues.length === 0
+    ) {
 
 
-        document.getElementById("error").textContent =
-            "Graph error: Function cannot be plotted in this interval.";
+        document.getElementById(
+            "error"
+        ).textContent =
 
+            "Graph error: No valid points.";
 
         return;
 
@@ -599,243 +705,94 @@ function drawGraph(
 
 
     /*
-       Prevent division by zero
+       Function curve
     */
 
-    if (minY === maxY) {
 
-        minY -= 1;
+    const functionTrace = {
 
-        maxY += 1;
+        x: xValues,
 
-    }
+        y: yValues,
 
+        mode: "lines",
 
-    const padding = 60;
+        name: "f(x)"
+
+    };
 
 
     /*
-       Convert mathematical coordinates
-       to canvas coordinates
+       Minimum point
     */
 
-    function mapX(x) {
 
+    const minimumTrace = {
 
-        return (
+        x: [minimumX],
 
-            padding +
+        y: [minimumY],
 
-            (
-                x - graphStart
-            ) /
-            (
-                graphEnd - graphStart
-            ) *
+        mode: "markers",
 
-            (
-                width - 2 * padding
-            )
+        name: "Approximate Minimum",
 
-        );
+        marker: {
 
-    }
-
-
-    function mapY(y) {
-
-
-        return (
-
-            height -
-            padding -
-
-            (
-                y - minY
-            ) /
-            (
-                maxY - minY
-            ) *
-
-            (
-                height - 2 * padding
-            )
-
-        );
-
-    }
-
-
-    /*
-       Draw background
-    */
-
-    ctx.clearRect(
-        0,
-        0,
-        width,
-        height
-    );
-
-
-    /*
-       Draw X axis
-    */
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        padding,
-        height - padding
-    );
-
-    ctx.lineTo(
-        width - padding,
-        height - padding
-    );
-
-    ctx.stroke();
-
-
-    /*
-       Draw Y axis
-    */
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        padding,
-        padding
-    );
-
-    ctx.lineTo(
-        padding,
-        height - padding
-    );
-
-    ctx.stroke();
-
-
-    /*
-       Draw function curve
-    */
-
-    ctx.beginPath();
-
-
-    let firstPoint = true;
-
-
-    points.forEach(function(point) {
-
-
-        const px =
-            mapX(point.x);
-
-
-        const py =
-            mapY(point.y);
-
-
-        if (firstPoint) {
-
-
-            ctx.moveTo(
-                px,
-                py
-            );
-
-
-            firstPoint = false;
+            size: 12
 
         }
 
-        else {
+    };
 
 
-            ctx.lineTo(
-                px,
-                py
-            );
+    /*
+       Layout
+    */
 
+
+    const layout = {
+
+        title:
+            "Golden Section Search",
+
+        xaxis: {
+
+            title: "x"
+
+        },
+
+        yaxis: {
+
+            title: "f(x)"
+
+        },
+
+        hovermode: "closest"
+
+    };
+
+
+    /*
+       Draw Plotly graph
+    */
+
+
+    Plotly.newPlot(
+
+        "plot",
+
+        [
+            functionTrace,
+            minimumTrace
+        ],
+
+        layout,
+
+        {
+            responsive: true
         }
 
-    });
-
-
-    ctx.stroke();
-
-
-    /*
-       Draw minimum point
-    */
-
-    const minimumPX =
-        mapX(minimumX);
-
-
-    const minimumPY =
-        mapY(minimumY);
-
-
-    ctx.beginPath();
-
-
-    ctx.arc(
-        minimumPX,
-        minimumPY,
-        8,
-        0,
-        2 * Math.PI
-    );
-
-
-    ctx.fill();
-
-
-    /*
-       Draw minimum label
-    */
-
-    ctx.font =
-        "18px Arial";
-
-
-    ctx.fillText(
-        "Minimum",
-        minimumPX + 12,
-        minimumPY - 20
-    );
-
-
-    ctx.fillText(
-        "x = " +
-        Number(minimumX).toFixed(4),
-        minimumPX + 12,
-        minimumPY + 5
-    );
-
-
-    ctx.fillText(
-        "f(x) = " +
-        Number(minimumY).toFixed(4),
-        minimumPX + 12,
-        minimumPY + 30
-    );
-
-
-    /*
-       Draw graph title
-    */
-
-    ctx.font =
-        "20px Arial";
-
-
-    ctx.fillText(
-        "f(x) = " + functionString,
-        padding,
-        30
     );
 
 
