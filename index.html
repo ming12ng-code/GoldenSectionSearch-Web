@@ -41,10 +41,6 @@
             cursor: pointer;
         }
 
-        #results {
-            margin-top: 35px;
-        }
-
         .result-box {
             background: #f4f4f4;
             padding: 15px;
@@ -56,13 +52,13 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         th,
         td {
             border: 1px solid #ccc;
-            padding: 8px;
+            padding: 7px;
             text-align: center;
         }
 
@@ -140,49 +136,36 @@
 <div id="error"></div>
 
 
-<div id="results">
-
-
 <h2>Results</h2>
 
 
 <div class="result-box">
-
-Minimum x =
-<span id="minimum-x"></span>
-
+    Minimum x =
+    <span id="minimum-x"></span>
 </div>
 
 
 <div class="result-box">
-
-Minimum f(x) =
-<span id="minimum-f"></span>
-
+    Minimum f(x) =
+    <span id="minimum-f"></span>
 </div>
 
 
 <div class="result-box">
-
-Iterations =
-<span id="iterations"></span>
-
+    Iterations =
+    <span id="iterations"></span>
 </div>
 
 
 <div class="result-box">
-
-Theoretical K =
-<span id="theoretical-k"></span>
-
+    Theoretical K =
+    <span id="theoretical-k"></span>
 </div>
 
 
 <div class="result-box">
-
-Final interval =
-<span id="final-interval"></span>
-
+    Final interval =
+    <span id="final-interval"></span>
 </div>
 
 
@@ -196,19 +179,12 @@ Final interval =
 <tr>
 
 <th>Iteration</th>
-
 <th>x1</th>
-
 <th>x2</th>
-
 <th>f(x1)</th>
-
 <th>f(x2)</th>
-
 <th>a</th>
-
 <th>b</th>
-
 <th>Interval Length</th>
 
 </tr>
@@ -216,20 +192,16 @@ Final interval =
 </thead>
 
 
-<tbody id="iteration-table">
+<tbody id="iteration-table"></tbody>
 
-</tbody>
 
 </table>
 
 
 <h2>Graph</h2>
 
-
 <div id="plot"></div>
 
-
-</div>
 
 
 <script>
@@ -239,65 +211,55 @@ async function calculate() {
 
 
     const functionString =
-        document.getElementById(
-            "function"
-        ).value;
+        document.getElementById("function").value;
 
 
     const start =
         parseFloat(
-            document.getElementById(
-                "start"
-            ).value
+            document.getElementById("start").value
         );
 
 
     const end =
         parseFloat(
-            document.getElementById(
-                "end"
-            ).value
+            document.getElementById("end").value
         );
 
 
     const tolerance =
         parseFloat(
-            document.getElementById(
-                "tolerance"
-            ).value
+            document.getElementById("tolerance").value
         );
 
 
-    document.getElementById(
-        "error"
-    ).textContent = "";
+    document.getElementById("error").textContent = "";
 
 
     try {
 
 
-        const response =
-            await fetch(
+        /* ==========================
+           CALL PYTHON API
+        ========================== */
 
-                "/api?" +
 
-                new URLSearchParams({
+        const response = await fetch(
 
-                    function:
-                        functionString,
+            "/api?" +
 
-                    start:
-                        start,
+            new URLSearchParams({
 
-                    end:
-                        end,
+                function: functionString,
 
-                    tolerance:
-                        tolerance
+                start: start,
 
-                })
+                end: end,
 
-            );
+                tolerance: tolerance
+
+            })
+
+        );
 
 
         const data =
@@ -306,14 +268,14 @@ async function calculate() {
 
         if (!response.ok) {
 
-            throw new Error(
-                data.error
-            );
+            throw new Error(data.error);
 
         }
 
 
-        /* RESULTS */
+        /* ==========================
+           RESULTS
+        ========================== */
 
 
         document.getElementById(
@@ -345,17 +307,15 @@ async function calculate() {
         ).textContent =
 
             "[" +
-
             data.final_interval[0] +
-
             ", " +
-
             data.final_interval[1] +
-
             "]";
 
 
-        /* ITERATION TABLE */
+        /* ==========================
+           ITERATION TABLE
+        ========================== */
 
 
         const table =
@@ -372,9 +332,7 @@ async function calculate() {
 
 
                 const tr =
-                    document.createElement(
-                        "tr"
-                    );
+                    document.createElement("tr");
 
 
                 tr.innerHTML =
@@ -414,25 +372,31 @@ async function calculate() {
 
                 table.appendChild(tr);
 
-
             }
         );
 
 
-        /* GRAPH */
+        /* ==========================
+           DRAW GRAPH
+        ========================== */
 
 
         drawGraph(
-            data.graph.x,
-            data.graph.y,
+
+            functionString,
+
+            start,
+
+            end,
+
             data.minimum_x,
-            data.minimum_f,
-            functionString
+
+            data.minimum_f
+
         );
 
 
     }
-
 
     catch (error) {
 
@@ -440,9 +404,7 @@ async function calculate() {
         document.getElementById(
             "error"
         ).textContent =
-
-            "Error: " +
-            error.message;
+            "Error: " + error.message;
 
 
     }
@@ -451,13 +413,258 @@ async function calculate() {
 
 
 
+/* =================================================
+   GRAPH
+================================================= */
+
+
 function drawGraph(
-    xValues,
-    yValues,
+    functionString,
+    start,
+    end,
     minimumX,
-    minimumY,
-    functionString
+    minimumY
 ) {
+
+
+    /*
+       Convert user's mathematical expression
+       into JavaScript.
+    */
+
+
+    let expression =
+        functionString;
+
+
+    expression =
+        expression.replace(
+            /\bln\s*\(/gi,
+            "Math.log("
+        );
+
+
+    expression =
+        expression.replace(
+            /\blog\s*\(/gi,
+            "Math.log("
+        );
+
+
+    expression =
+        expression.replace(
+            /\bsin\s*\(/gi,
+            "Math.sin("
+        );
+
+
+    expression =
+        expression.replace(
+            /\bcos\s*\(/gi,
+            "Math.cos("
+        );
+
+
+    expression =
+        expression.replace(
+            /\btan\s*\(/gi,
+            "Math.tan("
+        );
+
+
+    expression =
+        expression.replace(
+            /\bexp\s*\(/gi,
+            "Math.exp("
+        );
+
+
+    expression =
+        expression.replace(
+            /\^/g,
+            "**"
+        );
+
+
+    /*
+       Create JavaScript function.
+    */
+
+
+    let f;
+
+
+    try {
+
+        f = new Function(
+            "x",
+            "return " + expression
+        );
+
+    }
+
+    catch (error) {
+
+        document.getElementById(
+            "error"
+        ).textContent =
+            "Graph error: Invalid function.";
+
+        return;
+
+    }
+
+
+    /*
+       Generate points.
+    */
+
+
+    const xValues = [];
+
+    const yValues = [];
+
+
+    const points = 500;
+
+
+    /*
+       For ln(x), we must NEVER
+       calculate x <= 0.
+    */
+
+
+    let graphStart = start;
+
+    let graphEnd = end;
+
+
+    if (
+        expression.includes("Math.log")
+    ) {
+
+        graphStart =
+            Math.max(
+                graphStart,
+                0.000001
+            );
+
+    }
+
+
+    const range =
+        graphEnd - graphStart;
+
+
+    /*
+       Add a little space
+       around the interval.
+    */
+
+
+    graphStart =
+        graphStart -
+        range * 0.05;
+
+
+    graphEnd =
+        graphEnd +
+        range * 0.05;
+
+
+    /*
+       Make sure ln(x)
+       never receives x <= 0.
+    */
+
+
+    if (
+        expression.includes("Math.log")
+        &&
+        graphStart <= 0
+    ) {
+
+        graphStart = 0.000001;
+
+    }
+
+
+    /*
+       Generate x and y.
+    */
+
+
+    for (
+        let i = 0;
+        i < points;
+        i++
+    ) {
+
+
+        const x =
+
+            graphStart +
+
+            (
+                graphEnd -
+                graphStart
+            )
+            *
+            i
+            /
+            (points - 1);
+
+
+        try {
+
+
+            const y = f(x);
+
+
+            if (
+                Number.isFinite(y)
+            ) {
+
+                xValues.push(x);
+
+                yValues.push(y);
+
+            }
+
+
+        }
+
+        catch {
+
+            // Ignore invalid points
+
+        }
+
+    }
+
+
+    /*
+       Check graph data.
+    */
+
+
+    if (
+        xValues.length === 0
+    ) {
+
+        document.getElementById(
+            "error"
+        ).textContent =
+            "Graph error: Function cannot be plotted in this interval.";
+
+        return;
+
+    }
+
+
+    /*
+       Function curve.
+    */
 
 
     const functionTrace = {
@@ -473,6 +680,11 @@ function drawGraph(
     };
 
 
+    /*
+       Minimum point.
+    */
+
+
     const minimumTrace = {
 
         x: [minimumX],
@@ -481,7 +693,7 @@ function drawGraph(
 
         mode: "markers",
 
-        name: "Minimum",
+        name: "Approx. Minimum",
 
         marker: {
 
@@ -490,6 +702,11 @@ function drawGraph(
         }
 
     };
+
+
+    /*
+       Graph layout.
+    */
 
 
     const layout = {
@@ -510,9 +727,16 @@ function drawGraph(
 
         },
 
+        showlegend: true,
+
         hovermode: "closest"
 
     };
+
+
+    /*
+       Plot.
+    */
 
 
     Plotly.newPlot(
