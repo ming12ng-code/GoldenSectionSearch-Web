@@ -6,7 +6,6 @@ import math
 
 def golden_section_search(function_string, start, end, tolerance):
 
-    # Mathematical functions allowed in the objective function
     allowed_functions = {
         "math": math,
         "sin": math.sin,
@@ -17,7 +16,6 @@ def golden_section_search(function_string, start, end, tolerance):
         "ln": math.log
     }
 
-    # Objective function
     def f(x):
 
         return eval(
@@ -29,16 +27,13 @@ def golden_section_search(function_string, start, end, tolerance):
             }
         )
 
-    # Golden ratio
     phi = (math.sqrt(5) - 1) / 2
 
-    # Initial interval
     a = start
     b = end
 
     initial_interval_length = b - a
 
-    # Theoretical minimum number of iterations
     if tolerance >= initial_interval_length:
 
         theoretical_k = 0
@@ -50,12 +45,10 @@ def golden_section_search(function_string, start, end, tolerance):
             / math.log(phi)
         )
 
-    # Iteration table
     iteration_table = []
 
     k = 0
 
-    # Golden Section Search
     while abs(b - a) > tolerance:
 
         k += 1
@@ -76,29 +69,19 @@ def golden_section_search(function_string, start, end, tolerance):
 
             a = x1
 
-        current_length = b - a
-
         iteration_table.append({
 
             "iteration": k,
-
             "x1": x1,
-
             "x2": x2,
-
             "f(x1)": f_x1,
-
             "f(x2)": f_x2,
-
             "a": a,
-
             "b": b,
-
-            "interval_length": current_length
+            "interval_length": b - a
 
         })
 
-    # Approximate minimum
     x_min = (a + b) / 2
 
     f_min = f(x_min)
@@ -138,18 +121,15 @@ class handler(BaseHTTPRequestHandler):
 
         try:
 
-            # Read the information sent from the website
             parsed_url = urlparse(self.path)
 
             query = parse_qs(parsed_url.query)
 
-            # Get objective function
             function_string = query.get(
                 "function",
                 ["ln(x)-4*x+5"]
             )[0]
 
-            # Get interval
             start = float(
                 query.get("start", ["1"])[0]
             )
@@ -158,12 +138,10 @@ class handler(BaseHTTPRequestHandler):
                 query.get("end", ["10"])[0]
             )
 
-            # Get tolerance
             tolerance = float(
                 query.get("tolerance", ["0.0001"])[0]
             )
 
-            # Basic validation
             if start >= end:
 
                 raise ValueError(
@@ -176,7 +154,6 @@ class handler(BaseHTTPRequestHandler):
                     "Tolerance must be greater than zero."
                 )
 
-            # Calculate Golden Section Search
             result = golden_section_search(
                 function_string,
                 start,
@@ -184,7 +161,6 @@ class handler(BaseHTTPRequestHandler):
                 tolerance
             )
 
-            # Send result back to website
             self.send_response(200)
 
             self.send_header(
@@ -200,7 +176,6 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as error:
 
-            # Send error message to website
             self.send_response(500)
 
             self.send_header(
@@ -211,9 +186,7 @@ class handler(BaseHTTPRequestHandler):
             self.end_headers()
 
             response = {
-
                 "error": str(error)
-
             }
 
             self.wfile.write(
