@@ -1,11 +1,12 @@
 from http.server import BaseHTTPRequestHandler
+from urllib.parse import urlparse, parse_qs
 import json
 import math
 
 
 def golden_section_search(function_string, start, end, tolerance):
 
-    # Allow common mathematical functions
+    # Mathematical functions allowed in the objective function
     allowed_functions = {
         "math": math,
         "sin": math.sin,
@@ -16,8 +17,9 @@ def golden_section_search(function_string, start, end, tolerance):
         "ln": math.log
     }
 
-    # Create objective function
+    # Objective function
     def f(x):
+
         return eval(
             function_string,
             {
@@ -36,10 +38,13 @@ def golden_section_search(function_string, start, end, tolerance):
 
     initial_interval_length = b - a
 
-    # Theoretical K
+    # Theoretical minimum number of iterations
     if tolerance >= initial_interval_length:
+
         theoretical_k = 0
+
     else:
+
         theoretical_k = math.ceil(
             math.log(tolerance / initial_interval_length)
             / math.log(phi)
@@ -50,46 +55,80 @@ def golden_section_search(function_string, start, end, tolerance):
 
     k = 0
 
+    # Golden Section Search
     while abs(b - a) > tolerance:
 
         k += 1
 
         x1 = b - phi * (b - a)
+
         x2 = a + phi * (b - a)
 
         f_x1 = f(x1)
+
         f_x2 = f(x2)
 
         if f_x1 < f_x2:
+
             b = x2
+
         else:
+
             a = x1
 
+        current_length = b - a
+
         iteration_table.append({
+
             "iteration": k,
+
             "x1": x1,
+
             "x2": x2,
+
             "f(x1)": f_x1,
+
             "f(x2)": f_x2,
+
             "a": a,
+
             "b": b,
-            "interval_length": b - a
+
+            "interval_length": current_length
+
         })
 
-    # Final result
+    # Approximate minimum
     x_min = (a + b) / 2
+
     f_min = f(x_min)
 
     return {
+
         "function": function_string,
-        "initial_interval": [start, end],
+
+        "initial_interval": [
+            start,
+            end
+        ],
+
         "tolerance": tolerance,
+
         "minimum_x": x_min,
+
         "minimum_f": f_min,
+
         "iterations": k,
+
         "theoretical_k": theoretical_k,
-        "final_interval": [a, b],
+
+        "final_interval": [
+            a,
+            b
+        ],
+
         "iteration_table": iteration_table
+
     }
 
 
@@ -99,12 +138,45 @@ class handler(BaseHTTPRequestHandler):
 
         try:
 
-            # Example test values for now
-            function_string = "ln(x)-4*x+5"
-            start = 1
-            end = 10
-            tolerance = 0.0001
+            # Read the information sent from the website
+            parsed_url = urlparse(self.path)
 
+            query = parse_qs(parsed_url.query)
+
+            # Get objective function
+            function_string = query.get(
+                "function",
+                ["ln(x)-4*x+5"]
+            )[0]
+
+            # Get interval
+            start = float(
+                query.get("start", ["1"])[0]
+            )
+
+            end = float(
+                query.get("end", ["10"])[0]
+            )
+
+            # Get tolerance
+            tolerance = float(
+                query.get("tolerance", ["0.0001"])[0]
+            )
+
+            # Basic validation
+            if start >= end:
+
+                raise ValueError(
+                    "Start of interval must be smaller than end of interval."
+                )
+
+            if tolerance <= 0:
+
+                raise ValueError(
+                    "Tolerance must be greater than zero."
+                )
+
+            # Calculate Golden Section Search
             result = golden_section_search(
                 function_string,
                 start,
@@ -112,8 +184,14 @@ class handler(BaseHTTPRequestHandler):
                 tolerance
             )
 
+            # Send result back to website
             self.send_response(200)
-            self.send_header("Content-Type", "application/json")
+
+            self.send_header(
+                "Content-Type",
+                "application/json"
+            )
+
             self.end_headers()
 
             self.wfile.write(
@@ -122,12 +200,20 @@ class handler(BaseHTTPRequestHandler):
 
         except Exception as error:
 
+            # Send error message to website
             self.send_response(500)
-            self.send_header("Content-Type", "application/json")
+
+            self.send_header(
+                "Content-Type",
+                "application/json"
+            )
+
             self.end_headers()
 
             response = {
+
                 "error": str(error)
+
             }
 
             self.wfile.write(
