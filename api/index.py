@@ -4,24 +4,55 @@ import math
 import urllib.parse
 
 
+# =========================================================
+# Evaluate objective function
+# =========================================================
+
 def evaluate_function(function_string, x):
+
+    # Convert common mathematical notation
+    expression = function_string
+
+    expression = expression.replace("^", "**")
 
     allowed = {
         "__builtins__": {},
+
         "x": x,
+
         "math": math,
+
+        # Logarithm
         "ln": math.log,
         "log": math.log,
+
+        # Other common functions
         "exp": math.exp,
         "sin": math.sin,
         "cos": math.cos,
-        "tan": math.tan
+        "tan": math.tan,
+
+        # Constants
+        "pi": math.pi,
+        "e": math.e
     }
 
-    return eval(function_string, allowed)
+    return eval(
+        expression,
+        allowed
+    )
 
 
-def golden_section_search(function_string, start, end, tolerance):
+# =========================================================
+# Golden Section Search
+# =========================================================
+
+def golden_section_search(
+    function_string,
+    start,
+    end,
+    tolerance
+):
 
     phi = (math.sqrt(5) - 1) / 2
 
@@ -32,8 +63,11 @@ def golden_section_search(function_string, start, end, tolerance):
 
     # Theoretical K
     theoretical_k = math.ceil(
-        math.log(tolerance / initial_length)
-        / math.log(phi)
+        math.log(
+            tolerance / initial_length
+        )
+        /
+        math.log(phi)
     )
 
     iteration_table = []
@@ -45,6 +79,7 @@ def golden_section_search(function_string, start, end, tolerance):
         iteration += 1
 
         x1 = b - phi * (b - a)
+
         x2 = a + phi * (b - a)
 
         f_x1 = evaluate_function(
@@ -85,12 +120,16 @@ def golden_section_search(function_string, start, end, tolerance):
 
         })
 
+
+    # Approximate minimum
+
     x_min = (a + b) / 2
 
     f_min = evaluate_function(
         function_string,
         x_min
     )
+
 
     return {
 
@@ -112,62 +151,9 @@ def golden_section_search(function_string, start, end, tolerance):
     }
 
 
-def generate_graph_data(
-    function_string,
-    start,
-    end
-):
-
-    interval = end - start
-
-    graph_start = start - interval * 0.1
-
-    graph_end = end + interval * 0.1
-
-    number_of_points = 500
-
-    x_values = []
-
-    y_values = []
-
-    for i in range(number_of_points):
-
-        x = (
-            graph_start
-            +
-            (
-                graph_end - graph_start
-            )
-            * i
-            /
-            (number_of_points - 1)
-        )
-
-        try:
-
-            y = evaluate_function(
-                function_string,
-                x
-            )
-
-            if math.isfinite(y):
-
-                x_values.append(x)
-
-                y_values.append(y)
-
-        except Exception:
-
-            continue
-
-    return {
-
-        "x": x_values,
-
-        "y": y_values
-
-    }
-
+# =========================================================
+# Vercel API
+# =========================================================
 
 class handler(BaseHTTPRequestHandler):
 
@@ -175,6 +161,8 @@ class handler(BaseHTTPRequestHandler):
     def do_GET(self):
 
         try:
+
+            # Read URL parameters
 
             parsed_url = urllib.parse.urlparse(
                 self.path
@@ -184,10 +172,14 @@ class handler(BaseHTTPRequestHandler):
                 parsed_url.query
             )
 
+
+            # Get user inputs
+
             function_string = query.get(
                 "function",
                 ["ln(x)-4*x+5"]
             )[0]
+
 
             start = float(
                 query.get(
@@ -196,12 +188,14 @@ class handler(BaseHTTPRequestHandler):
                 )[0]
             )
 
+
             end = float(
                 query.get(
                     "end",
                     ["10"]
                 )[0]
             )
+
 
             tolerance = float(
                 query.get(
@@ -210,6 +204,8 @@ class handler(BaseHTTPRequestHandler):
                 )[0]
             )
 
+
+            # Validate interval
 
             if start >= end:
 
@@ -225,29 +221,59 @@ class handler(BaseHTTPRequestHandler):
                 )
 
 
-            # Golden Section Search
+            # =================================================
+            # Check function domain
+            # =================================================
+
+            test_points = [
+
+                start,
+
+                start + (end - start) * 0.25,
+
+                start + (end - start) * 0.5,
+
+                start + (end - start) * 0.75,
+
+                end
+
+            ]
+
+
+            for test_x in test_points:
+
+                test_y = evaluate_function(
+                    function_string,
+                    test_x
+                )
+
+                if not math.isfinite(test_y):
+
+                    raise ValueError(
+                        "The function is not valid in this interval."
+                    )
+
+
+            # =================================================
+            # Run Golden Section Search
+            # =================================================
 
             result = golden_section_search(
+
                 function_string,
+
                 start,
+
                 end,
+
                 tolerance
+
             )
 
 
-            # Graph data
-
-            graph = generate_graph_data(
-                function_string,
-                start,
-                end
-            )
-
-
-            # Combine everything
-
-            result["graph"] = graph
-
+            # =================================================
+            # Send JSON response
+            # =================================================
 
             response = json.dumps(
                 result
@@ -256,17 +282,21 @@ class handler(BaseHTTPRequestHandler):
 
             self.send_response(200)
 
+
             self.send_header(
                 "Content-Type",
                 "application/json"
             )
+
 
             self.send_header(
                 "Access-Control-Allow-Origin",
                 "*"
             )
 
+
             self.end_headers()
+
 
             self.wfile.write(
                 response.encode()
@@ -274,6 +304,7 @@ class handler(BaseHTTPRequestHandler):
 
 
         except Exception as error:
+
 
             response = json.dumps({
 
@@ -284,12 +315,15 @@ class handler(BaseHTTPRequestHandler):
 
             self.send_response(400)
 
+
             self.send_header(
                 "Content-Type",
                 "application/json"
             )
 
+
             self.end_headers()
+
 
             self.wfile.write(
                 response.encode()
