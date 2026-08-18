@@ -5,7 +5,6 @@
 
     <title>Golden Section Search</title>
 
-    <!-- Plotly -->
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
 
     <style>
@@ -77,13 +76,10 @@
             font-weight: bold;
         }
 
-        #graph {
-            margin-top: 40px;
-        }
-
         #plot {
             width: 100%;
             height: 600px;
+            margin-top: 20px;
         }
 
     </style>
@@ -94,234 +90,214 @@
 <body>
 
 
-    <h1>Golden Section Search</h1>
+<h1>Golden Section Search</h1>
 
 
-    <!-- =========================
-         INPUT
-    ========================== -->
+<label>Objective Function</label>
 
+<input
+    type="text"
+    id="function"
+    value="ln(x)-4*x+5"
+>
 
-    <label>Objective Function</label>
 
-    <input
-        type="text"
-        id="function"
-        value="ln(x)-4*x+5"
-    >
+<label>Start of interval</label>
 
+<input
+    type="number"
+    id="start"
+    value="1"
+    step="any"
+>
 
-    <label>Start of interval</label>
 
-    <input
-        type="number"
-        id="start"
-        value="1"
-        step="any"
-    >
+<label>End of interval</label>
 
+<input
+    type="number"
+    id="end"
+    value="10"
+    step="any"
+>
 
-    <label>End of interval</label>
 
-    <input
-        type="number"
-        id="end"
-        value="10"
-        step="any"
-    >
+<label>Tolerance</label>
 
+<input
+    type="number"
+    id="tolerance"
+    value="0.0001"
+    step="any"
+>
 
-    <label>Tolerance</label>
 
-    <input
-        type="number"
-        id="tolerance"
-        value="0.0001"
-        step="any"
-    >
+<button onclick="calculate()">
+    Calculate
+</button>
 
 
-    <button onclick="calculate()">
+<div id="error"></div>
 
-        Calculate
 
-    </button>
+<div id="results">
 
 
-    <div id="error"></div>
+<h2>Results</h2>
 
 
-    <!-- =========================
-         RESULTS
-    ========================== -->
+<div class="result-box">
 
+Minimum x =
+<span id="minimum-x"></span>
 
-    <div id="results">
+</div>
 
-        <h2>Results</h2>
 
+<div class="result-box">
 
-        <div class="result-box">
+Minimum f(x) =
+<span id="minimum-f"></span>
 
-            Minimum x =
-            <span id="minimum-x"></span>
+</div>
 
-        </div>
 
+<div class="result-box">
 
-        <div class="result-box">
+Iterations =
+<span id="iterations"></span>
 
-            Minimum f(x) =
-            <span id="minimum-f"></span>
+</div>
 
-        </div>
 
+<div class="result-box">
 
-        <div class="result-box">
+Theoretical K =
+<span id="theoretical-k"></span>
 
-            Iterations =
-            <span id="iterations"></span>
+</div>
 
-        </div>
 
+<div class="result-box">
 
-        <div class="result-box">
+Final interval =
+<span id="final-interval"></span>
 
-            Theoretical K =
-            <span id="theoretical-k"></span>
+</div>
 
-        </div>
 
+<h2>Iteration Table</h2>
 
-        <div class="result-box">
 
-            Final interval =
-            <span id="final-interval"></span>
+<table>
 
-        </div>
+<thead>
 
+<tr>
 
-        <!-- =========================
-             ITERATION TABLE
-        ========================== -->
+<th>Iteration</th>
 
+<th>x1</th>
 
-        <h2>Iteration Table</h2>
+<th>x2</th>
 
+<th>f(x1)</th>
 
-        <table>
+<th>f(x2)</th>
 
-            <thead>
+<th>a</th>
 
-                <tr>
+<th>b</th>
 
-                    <th>Iteration</th>
+<th>Interval Length</th>
 
-                    <th>x1</th>
+</tr>
 
-                    <th>x2</th>
+</thead>
 
-                    <th>f(x1)</th>
 
-                    <th>f(x2)</th>
+<tbody id="iteration-table">
 
-                    <th>a</th>
+</tbody>
 
-                    <th>b</th>
+</table>
 
-                    <th>Interval Length</th>
 
-                </tr>
+<h2>Graph</h2>
 
-            </thead>
 
+<div id="plot"></div>
 
-            <tbody id="iteration-table">
 
-            </tbody>
-
-        </table>
-
-
-        <!-- =========================
-             GRAPH
-        ========================== -->
-
-
-        <div id="graph">
-
-            <h2>Graph</h2>
-
-            <div id="plot"></div>
-
-        </div>
-
-
-    </div>
-
+</div>
 
 
 <script>
-
-
-/* =====================================================
-   CALCULATE
-===================================================== */
 
 
 async function calculate() {
 
 
     const functionString =
-        document.getElementById("function").value;
+        document.getElementById(
+            "function"
+        ).value;
 
 
     const start =
         parseFloat(
-            document.getElementById("start").value
+            document.getElementById(
+                "start"
+            ).value
         );
 
 
     const end =
         parseFloat(
-            document.getElementById("end").value
+            document.getElementById(
+                "end"
+            ).value
         );
 
 
     const tolerance =
         parseFloat(
-            document.getElementById("tolerance").value
+            document.getElementById(
+                "tolerance"
+            ).value
         );
 
 
-    document.getElementById("error").textContent = "";
+    document.getElementById(
+        "error"
+    ).textContent = "";
 
 
     try {
 
 
-        /* =========================
-           CALL PYTHON API
-        ========================== */
+        const response =
+            await fetch(
 
+                "/api?" +
 
-        const response = await fetch(
+                new URLSearchParams({
 
-            "/api?" +
+                    function:
+                        functionString,
 
-            new URLSearchParams({
+                    start:
+                        start,
 
-                function: functionString,
+                    end:
+                        end,
 
-                start: start,
+                    tolerance:
+                        tolerance
 
-                end: end,
+                })
 
-                tolerance: tolerance
-
-            })
-
-        );
+            );
 
 
         const data =
@@ -337,9 +313,7 @@ async function calculate() {
         }
 
 
-        /* =========================
-           RESULTS
-        ========================== */
+        /* RESULTS */
 
 
         document.getElementById(
@@ -381,9 +355,7 @@ async function calculate() {
             "]";
 
 
-        /* =========================
-           ITERATION TABLE
-        ========================== */
+        /* ITERATION TABLE */
 
 
         const table =
@@ -447,23 +419,15 @@ async function calculate() {
         );
 
 
-        /* =========================
-           DRAW GRAPH
-        ========================== */
+        /* GRAPH */
 
 
         drawGraph(
-
-            functionString,
-
-            start,
-
-            end,
-
+            data.graph.x,
+            data.graph.y,
             data.minimum_x,
-
-            data.minimum_f
-
+            data.minimum_f,
+            functionString
         );
 
 
@@ -487,226 +451,13 @@ async function calculate() {
 
 
 
-/* =====================================================
-   GRAPH FUNCTION
-===================================================== */
-
-
 function drawGraph(
-    functionString,
-    start,
-    end,
+    xValues,
+    yValues,
     minimumX,
-    minimumY
+    minimumY,
+    functionString
 ) {
-
-
-    /*
-       Convert mathematical notation
-       into JavaScript notation.
-    */
-
-
-    let expression =
-        functionString;
-
-
-    expression =
-        expression.replace(
-            /ln\(/gi,
-            "Math.log("
-        );
-
-
-    expression =
-        expression.replace(
-            /log\(/gi,
-            "Math.log("
-        );
-
-
-    expression =
-        expression.replace(
-            /sin\(/gi,
-            "Math.sin("
-        );
-
-
-    expression =
-        expression.replace(
-            /cos\(/gi,
-            "Math.cos("
-        );
-
-
-    expression =
-        expression.replace(
-            /tan\(/gi,
-            "Math.tan("
-        );
-
-
-    expression =
-        expression.replace(
-            /exp\(/gi,
-            "Math.exp("
-        );
-
-
-    expression =
-        expression.replace(
-            /\^/g,
-            "**"
-        );
-
-
-    /*
-       Create function
-    */
-
-
-    let f;
-
-
-    try {
-
-
-        f =
-            new Function(
-                "x",
-                "return " +
-                expression
-            );
-
-
-    }
-
-
-    catch (error) {
-
-
-        document.getElementById(
-            "error"
-        ).textContent =
-
-            "Graph error: Invalid function.";
-
-
-        return;
-
-    }
-
-
-    /*
-       Generate X values
-    */
-
-
-    const xValues = [];
-
-    const yValues = [];
-
-
-    const numberOfPoints = 500;
-
-
-    const interval =
-        end - start;
-
-
-    const graphStart =
-        start -
-        interval * 0.1;
-
-
-    const graphEnd =
-        end +
-        interval * 0.1;
-
-
-    for (
-        let i = 0;
-        i < numberOfPoints;
-        i++
-    ) {
-
-
-        const x =
-
-            graphStart +
-
-            (
-                graphEnd -
-                graphStart
-            ) *
-
-            i /
-
-            (
-                numberOfPoints - 1
-            );
-
-
-        let y;
-
-
-        try {
-
-            y = f(x);
-
-        }
-
-        catch {
-
-            y = NaN;
-
-        }
-
-
-        /*
-           Only keep valid points
-        */
-
-
-        if (
-            Number.isFinite(y)
-        ) {
-
-
-            xValues.push(x);
-
-            yValues.push(y);
-
-
-        }
-
-    }
-
-
-    /*
-       Make sure we have data
-    */
-
-
-    if (
-        xValues.length === 0
-    ) {
-
-
-        document.getElementById(
-            "error"
-        ).textContent =
-
-            "Graph error: No valid points.";
-
-        return;
-
-    }
-
-
-    /*
-       Function curve
-    */
 
 
     const functionTrace = {
@@ -722,11 +473,6 @@ function drawGraph(
     };
 
 
-    /*
-       Minimum point
-    */
-
-
     const minimumTrace = {
 
         x: [minimumX],
@@ -735,7 +481,7 @@ function drawGraph(
 
         mode: "markers",
 
-        name: "Approximate Minimum",
+        name: "Minimum",
 
         marker: {
 
@@ -746,15 +492,11 @@ function drawGraph(
     };
 
 
-    /*
-       Layout
-    */
-
-
     const layout = {
 
         title:
-            "Golden Section Search",
+            "f(x) = " +
+            functionString,
 
         xaxis: {
 
@@ -773,11 +515,6 @@ function drawGraph(
     };
 
 
-    /*
-       Draw Plotly graph
-    */
-
-
     Plotly.newPlot(
 
         "plot",
@@ -794,7 +531,6 @@ function drawGraph(
         }
 
     );
-
 
 }
 
