@@ -100,6 +100,7 @@
 
 <h3>Group 1</h3>
 
+
 <div class="members">
 
     <strong>Group Members:</strong>
@@ -121,36 +122,49 @@
 </div>
 
 
-<label>Objective Function (Without Ln(x) function)</label>
+<label>
+    Objective Function
+</label>
+
 
 <input
     type="text"
     id="function"
     value="x**2-4*x+1"
+    placeholder="Example: f(x)=x^2-4x+1"
 >
 
 
-<label>Start of interval</label>
+<label>
+    Start of interval
+</label>
+
 
 <input
     type="number"
     id="start"
-    value="1"
+    value="0"
     step="any"
 >
 
 
-<label>End of interval</label>
+<label>
+    End of interval
+</label>
+
 
 <input
     type="number"
     id="end"
-    value="10"
+    value="5"
     step="any"
 >
 
 
-<label>Tolerance</label>
+<label>
+    Tolerance
+</label>
+
 
 <input
     type="number"
@@ -172,32 +186,42 @@
 
 
 <div class="result-box">
+
     Minimum x =
     <span id="minimum-x"></span>
+
 </div>
 
 
 <div class="result-box">
+
     Minimum f(x) =
     <span id="minimum-f"></span>
+
 </div>
 
 
 <div class="result-box">
+
     Iterations =
     <span id="iterations"></span>
+
 </div>
 
 
 <div class="result-box">
+
     Theoretical K =
     <span id="theoretical-k"></span>
+
 </div>
 
 
 <div class="result-box">
+
     Final interval =
     <span id="final-interval"></span>
+
 </div>
 
 
@@ -239,6 +263,7 @@
 
 <h2>Graph</h2>
 
+
 <div id="plot"></div>
 
 
@@ -246,71 +271,247 @@
 <script>
 
 
+/*
+================================================
+NORMALIZE USER INPUT
+================================================
+*/
+
+function normalizeFunction(expression) {
+
+    let result = expression.trim();
+
+
+    /*
+    Remove f(x) =
+    */
+
+    result = result.replace(
+        /^\s*f\s*\(\s*x\s*\)\s*=\s*/i,
+        ""
+    );
+
+
+    /*
+    Remove y =
+    */
+
+    result = result.replace(
+        /^\s*y\s*=\s*/i,
+        ""
+    );
+
+
+    /*
+    Remove spaces
+    */
+
+    result = result.replace(
+        /\s+/g,
+        ""
+    );
+
+
+    /*
+    x^2 → x**2
+    */
+
+    result = result.replace(
+        /\^/g,
+        "**"
+    );
+
+
+    /*
+    x² → x**2
+    */
+
+    result = result.replace(
+        /x²/gi,
+        "x**2"
+    );
+
+
+    /*
+    x³ → x**3
+    */
+
+    result = result.replace(
+        /x³/gi,
+        "x**3"
+    );
+
+
+    /*
+    4x → 4*x
+    */
+
+    result = result.replace(
+        /(\d)(x)/gi,
+        "$1*$2"
+    );
+
+
+    /*
+    2(x+1) → 2*(x+1)
+    */
+
+    result = result.replace(
+        /(\d)\(/g,
+        "$1*("
+    );
+
+
+    /*
+    x(x+1) → x*(x+1)
+    */
+
+    result = result.replace(
+        /(x)\(/gi,
+        "$1*("
+    );
+
+
+    /*
+    )x → )*x
+    */
+
+    result = result.replace(
+        /\)(x)/gi,
+        ")*$1"
+    );
+
+
+    /*
+    )( → )*(
+    */
+
+    result = result.replace(
+        /\)\(/g,
+        ")*("
+    );
+
+
+    return result;
+
+}
+
+
+
+/*
+================================================
+CALCULATE
+================================================
+*/
+
 async function calculate() {
 
 
+    /*
+    Get user's original input
+    */
+
+    const userInput =
+        document.getElementById(
+            "function"
+        ).value;
+
+
+    /*
+    Automatically correct the function
+    */
+
     const functionString =
-        document.getElementById("function").value;
+        normalizeFunction(
+            userInput
+        );
 
 
     const start =
         parseFloat(
-            document.getElementById("start").value
+            document.getElementById(
+                "start"
+            ).value
         );
 
 
     const end =
         parseFloat(
-            document.getElementById("end").value
+            document.getElementById(
+                "end"
+            ).value
         );
 
 
     const tolerance =
         parseFloat(
-            document.getElementById("tolerance").value
+            document.getElementById(
+                "tolerance"
+            ).value
         );
 
 
-    document.getElementById("error").textContent = "";
+    /*
+    Clear previous error
+    */
+
+    document.getElementById(
+        "error"
+    ).textContent = "";
 
 
     try {
 
 
-        const response = await fetch(
+        /*
+        Send data to Python API
+        */
 
-            "/api?" +
+        const response =
+            await fetch(
 
-            new URLSearchParams({
+                "/api?" +
 
-                function: functionString,
+                new URLSearchParams({
 
-                start: start,
+                    function:
+                        functionString,
 
-                end: end,
+                    start:
+                        start,
 
-                tolerance: tolerance
+                    end:
+                        end,
 
-            })
+                    tolerance:
+                        tolerance
 
-        );
+                })
+
+            );
 
 
         const data =
             await response.json();
 
 
+        /*
+        Check API error
+        */
+
         if (!response.ok) {
 
-            throw new Error(data.error);
+            throw new Error(
+                data.error
+            );
 
         }
 
 
         /*
-        ================================
+        ========================================
         RESULTS
-        ================================
+        ========================================
         */
 
 
@@ -354,9 +555,9 @@ async function calculate() {
 
 
         /*
-        ================================
+        ========================================
         ITERATION TABLE
-        ================================
+        ========================================
         */
 
 
@@ -374,7 +575,9 @@ async function calculate() {
 
 
                 const tr =
-                    document.createElement("tr");
+                    document.createElement(
+                        "tr"
+                    );
 
 
                 tr.innerHTML =
@@ -412,22 +615,24 @@ async function calculate() {
                     "</td>";
 
 
-                table.appendChild(tr);
+                table.appendChild(
+                    tr
+                );
 
             }
         );
 
 
         /*
-        ================================
+        ========================================
         GRAPH
-        ================================
+        ========================================
         */
 
 
         drawGraph(
 
-            functionString,
+            userInput,
 
             start,
 
@@ -448,7 +653,9 @@ async function calculate() {
         document.getElementById(
             "error"
         ).textContent =
-            "Error: " + error.message;
+
+            "Error: " +
+            error.message;
 
 
     }
@@ -459,15 +666,19 @@ async function calculate() {
 
 /*
 ================================================
-CONVERT MATHEMATICAL FUNCTION
+CONVERT FUNCTION FOR GRAPH
 ================================================
 */
 
+function convertFunctionForGraph(
+    expression
+) {
 
-function convertFunction(expression) {
 
-
-    let result = expression;
+    let result =
+        normalizeFunction(
+            expression
+        );
 
 
     /*
@@ -530,16 +741,6 @@ function convertFunction(expression) {
     );
 
 
-    /*
-    x^2 → x**2
-    */
-
-    result = result.replace(
-        /\^/g,
-        "**"
-    );
-
-
     return result;
 
 }
@@ -552,7 +753,6 @@ DRAW GRAPH
 ================================================
 */
 
-
 function drawGraph(
     functionString,
     start,
@@ -562,12 +762,10 @@ function drawGraph(
 ) {
 
 
-    /*
-    Convert function
-    */
-
     const expression =
-        convertFunction(functionString);
+        convertFunctionForGraph(
+            functionString
+        );
 
 
     let f;
@@ -601,23 +799,13 @@ function drawGraph(
 
 
     /*
-    ============================================
-    Detect ln()
-    ============================================
+    Check ln()
     */
-
 
     const containsLn =
         /\bln\s*\(/i.test(
             functionString
         );
-
-
-    /*
-    ============================================
-    Set graph interval
-    ============================================
-    */
 
 
     let graphStart = start;
@@ -641,43 +829,8 @@ function drawGraph(
 
 
     /*
-    Add 5% space
+    Generate points
     */
-
-    const range =
-        graphEnd - graphStart;
-
-
-    graphStart =
-        graphStart -
-        range * 0.05;
-
-
-    graphEnd =
-        graphEnd +
-        range * 0.05;
-
-
-    /*
-    ln(x) cannot use x <= 0
-    */
-
-    if (
-        containsLn &&
-        graphStart <= 0
-    ) {
-
-        graphStart = 0.000001;
-
-    }
-
-
-    /*
-    ============================================
-    Generate graph points
-    ============================================
-    */
-
 
     const xValues = [];
 
@@ -735,9 +888,7 @@ function drawGraph(
 
         catch {
 
-            /*
-            Ignore invalid points
-            */
+            // Ignore invalid points
 
         }
 
@@ -745,11 +896,8 @@ function drawGraph(
 
 
     /*
-    ============================================
-    Check data
-    ============================================
+    No valid points
     */
-
 
     if (
         xValues.length === 0
@@ -760,7 +908,7 @@ function drawGraph(
             "error"
         ).textContent =
 
-            "Graph error: Function cannot be plotted in this interval.";
+            "Graph error: No valid points.";
 
 
         return;
@@ -769,11 +917,8 @@ function drawGraph(
 
 
     /*
-    ============================================
     Function curve
-    ============================================
     */
-
 
     const functionTrace = {
 
@@ -789,11 +934,8 @@ function drawGraph(
 
 
     /*
-    ============================================
     Minimum point
-    ============================================
     */
-
 
     const minimumTrace = {
 
@@ -815,11 +957,8 @@ function drawGraph(
 
 
     /*
-    ============================================
     Graph layout
-    ============================================
     */
-
 
     const layout = {
 
@@ -847,11 +986,8 @@ function drawGraph(
 
 
     /*
-    ============================================
-    Plotly
-    ============================================
+    Draw Plotly graph
     */
-
 
     Plotly.newPlot(
 
