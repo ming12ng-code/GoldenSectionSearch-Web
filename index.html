@@ -1,44 +1,299 @@
 <!DOCTYPE html>
 <html>
 <head>
+
     <title>Golden Section Search</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-top: 18px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        button {
+            margin-top: 25px;
+            padding: 12px 25px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #results {
+            margin-top: 35px;
+        }
+
+        .result-box {
+            background: #f4f4f4;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background: #eeeeee;
+        }
+
+        #error {
+            color: red;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+    </style>
+
 </head>
+
 
 <body>
 
     <h1>Golden Section Search</h1>
 
-    <p>Objective Function</p>
-    <input type="text" id="function" value="ln(x)-4*x+5">
 
-    <p>Start of interval</p>
-    <input type="number" id="start" value="1">
+    <label>Objective Function</label>
 
-    <p>End of interval</p>
-    <input type="number" id="end" value="10">
+    <input
+        type="text"
+        id="function"
+        value="ln(x)-4*x+5"
+    >
 
-    <p>Tolerance</p>
-    <input type="number" id="tolerance" value="0.0001" step="any">
 
-    <br><br>
+    <label>Start of interval</label>
 
-    <button onclick="calculate()">Calculate</button>
+    <input
+        type="number"
+        id="start"
+        value="1"
+        step="any"
+    >
+
+
+    <label>End of interval</label>
+
+    <input
+        type="number"
+        id="end"
+        value="10"
+        step="any"
+    >
+
+
+    <label>Tolerance</label>
+
+    <input
+        type="number"
+        id="tolerance"
+        value="0.0001"
+        step="any"
+    >
+
+
+    <button onclick="calculate()">
+        Calculate
+    </button>
+
+
+    <div id="error"></div>
+
+
+    <div id="results">
+
+        <h2>Results</h2>
+
+        <div class="result-box">
+            Minimum x =
+            <span id="minimum-x"></span>
+        </div>
+
+        <div class="result-box">
+            Minimum f(x) =
+            <span id="minimum-f"></span>
+        </div>
+
+        <div class="result-box">
+            Iterations =
+            <span id="iterations"></span>
+        </div>
+
+        <div class="result-box">
+            Theoretical K =
+            <span id="theoretical-k"></span>
+        </div>
+
+        <div class="result-box">
+            Final interval =
+            <span id="final-interval"></span>
+        </div>
+
+
+        <h2>Iteration Table</h2>
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Iteration</th>
+                    <th>x1</th>
+                    <th>x2</th>
+                    <th>f(x1)</th>
+                    <th>f(x2)</th>
+                    <th>a</th>
+                    <th>b</th>
+                    <th>Interval Length</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody id="iteration-table">
+
+            </tbody>
+
+        </table>
+
+    </div>
+
 
     <script>
 
         async function calculate() {
 
+            const functionString =
+                document.getElementById("function").value;
+
+            const start =
+                parseFloat(
+                    document.getElementById("start").value
+                );
+
+            const end =
+                parseFloat(
+                    document.getElementById("end").value
+                );
+
+            const tolerance =
+                parseFloat(
+                    document.getElementById("tolerance").value
+                );
+
+
+            document.getElementById("error").textContent = "";
+
+
             try {
 
-                const response = await fetch("/api");
+                const response = await fetch(
+                    "/api?" +
+                    new URLSearchParams({
+                        function: functionString,
+                        start: start,
+                        end: end,
+                        tolerance: tolerance
+                    })
+                );
+
 
                 const data = await response.json();
 
-                alert(data.message);
 
-            } catch (error) {
+                if (!response.ok) {
 
-                alert("Error connecting to Python API");
+                    throw new Error(data.error);
+
+                }
+
+
+                document.getElementById("minimum-x").textContent =
+                    data.minimum_x;
+
+                document.getElementById("minimum-f").textContent =
+                    data.minimum_f;
+
+                document.getElementById("iterations").textContent =
+                    data.iterations;
+
+                document.getElementById("theoretical-k").textContent =
+                    data.theoretical_k;
+
+                document.getElementById("final-interval").textContent =
+                    "[" +
+                    data.final_interval[0] +
+                    ", " +
+                    data.final_interval[1] +
+                    "]";
+
+
+                const table =
+                    document.getElementById("iteration-table");
+
+
+                table.innerHTML = "";
+
+
+                data.iteration_table.forEach(function(row) {
+
+                    const tr =
+                        document.createElement("tr");
+
+
+                    tr.innerHTML =
+
+                        "<td>" + row.iteration + "</td>" +
+                        "<td>" + row.x1 + "</td>" +
+                        "<td>" + row.x2 + "</td>" +
+                        "<td>" + row["f(x1)"] + "</td>" +
+                        "<td>" + row["f(x2)"] + "</td>" +
+                        "<td>" + row.a + "</td>" +
+                        "<td>" + row.b + "</td>" +
+                        "<td>" + row.interval_length + "</td>";
+
+
+                    table.appendChild(tr);
+
+                });
+
+
+            }
+
+            catch (error) {
+
+                document.getElementById("error").textContent =
+                    "Error: " + error.message;
 
             }
 
@@ -46,5 +301,7 @@
 
     </script>
 
+
 </body>
+
 </html>
