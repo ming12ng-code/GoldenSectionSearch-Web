@@ -20,6 +20,15 @@
             text-align: center;
         }
 
+        h3 {
+            text-align: center;
+        }
+
+        .members {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
         label {
             display: block;
             margin-top: 18px;
@@ -88,19 +97,28 @@
 
 <h1>Golden Section Search</h1>
 
+
 <h3>Group 1</h3>
 
-<p>
-    <strong>Group Members:</strong>
-</p>
+<div class="members">
 
-<ol>
-    <li>Ng Yun Ming</li>
-    <li>Darren Chung Jyh Chen</li>
-    <li>Darren Teyo Zhe Yi</li>
-    <li>Chin Runxing</li>
-    <li>Teh Kai Cheng</li>
-</ol>
+    <strong>Group Members:</strong>
+
+    <ol style="display:inline-block; text-align:left;">
+
+        <li>Ng Yun Ming</li>
+
+        <li>Darren Chung Jyh Chen</li>
+
+        <li>Darren Teyo Zhe Yi</li>
+
+        <li>Chin Runxing</li>
+
+        <li>Teh Kai Cheng</li>
+
+    </ol>
+
+</div>
 
 
 <label>Objective Function</label>
@@ -193,12 +211,19 @@
 <tr>
 
 <th>Iteration</th>
+
 <th>x1</th>
+
 <th>x2</th>
+
 <th>f(x1)</th>
+
 <th>f(x2)</th>
+
 <th>a</th>
+
 <th>b</th>
+
 <th>Interval Length</th>
 
 </tr>
@@ -252,11 +277,6 @@ async function calculate() {
     try {
 
 
-        /* ==========================
-           CALL PYTHON API
-        ========================== */
-
-
         const response = await fetch(
 
             "/api?" +
@@ -287,9 +307,11 @@ async function calculate() {
         }
 
 
-        /* ==========================
-           RESULTS
-        ========================== */
+        /*
+        ================================
+        RESULTS
+        ================================
+        */
 
 
         document.getElementById(
@@ -321,15 +343,21 @@ async function calculate() {
         ).textContent =
 
             "[" +
+
             data.final_interval[0] +
+
             ", " +
+
             data.final_interval[1] +
+
             "]";
 
 
-        /* ==========================
-           ITERATION TABLE
-        ========================== */
+        /*
+        ================================
+        ITERATION TABLE
+        ================================
+        */
 
 
         const table =
@@ -390,9 +418,11 @@ async function calculate() {
         );
 
 
-        /* ==========================
-           DRAW GRAPH
-        ========================== */
+        /*
+        ================================
+        GRAPH
+        ================================
+        */
 
 
         drawGraph(
@@ -427,9 +457,100 @@ async function calculate() {
 
 
 
-/* =================================================
-   GRAPH
-================================================= */
+/*
+================================================
+CONVERT MATHEMATICAL FUNCTION
+================================================
+*/
+
+
+function convertFunction(expression) {
+
+
+    let result = expression;
+
+
+    /*
+    ln(x) → Math.log(x)
+    */
+
+    result = result.replace(
+        /\bln\s*\(/gi,
+        "Math.log("
+    );
+
+
+    /*
+    log(x) → Math.log(x)
+    */
+
+    result = result.replace(
+        /\blog\s*\(/gi,
+        "Math.log("
+    );
+
+
+    /*
+    sin(x)
+    */
+
+    result = result.replace(
+        /\bsin\s*\(/gi,
+        "Math.sin("
+    );
+
+
+    /*
+    cos(x)
+    */
+
+    result = result.replace(
+        /\bcos\s*\(/gi,
+        "Math.cos("
+    );
+
+
+    /*
+    tan(x)
+    */
+
+    result = result.replace(
+        /\btan\s*\(/gi,
+        "Math.tan("
+    );
+
+
+    /*
+    exp(x)
+    */
+
+    result = result.replace(
+        /\bexp\s*\(/gi,
+        "Math.exp("
+    );
+
+
+    /*
+    x^2 → x**2
+    */
+
+    result = result.replace(
+        /\^/g,
+        "**"
+    );
+
+
+    return result;
+
+}
+
+
+
+/*
+================================================
+DRAW GRAPH
+================================================
+*/
 
 
 function drawGraph(
@@ -442,67 +563,11 @@ function drawGraph(
 
 
     /*
-       Convert user's mathematical expression
-       into JavaScript.
+    Convert function
     */
 
-
-    let expression =
-        functionString;
-
-
-    expression =
-        expression.replace(
-            /\bln\s*\(/gi,
-            "Math.log("
-        );
-
-
-    expression =
-        expression.replace(
-            /\blog\s*\(/gi,
-            "Math.log("
-        );
-
-
-    expression =
-        expression.replace(
-            /\bsin\s*\(/gi,
-            "Math.sin("
-        );
-
-
-    expression =
-        expression.replace(
-            /\bcos\s*\(/gi,
-            "Math.cos("
-        );
-
-
-    expression =
-        expression.replace(
-            /\btan\s*\(/gi,
-            "Math.tan("
-        );
-
-
-    expression =
-        expression.replace(
-            /\bexp\s*\(/gi,
-            "Math.exp("
-        );
-
-
-    expression =
-        expression.replace(
-            /\^/g,
-            "**"
-        );
-
-
-    /*
-       Create JavaScript function.
-    */
+    const expression =
+        convertFunction(functionString);
 
 
     let f;
@@ -510,19 +575,25 @@ function drawGraph(
 
     try {
 
+
         f = new Function(
             "x",
-            "return " + expression
+            "return (" +
+            expression +
+            ");"
         );
+
 
     }
 
     catch (error) {
 
+
         document.getElementById(
             "error"
         ).textContent =
             "Graph error: Invalid function.";
+
 
         return;
 
@@ -530,21 +601,22 @@ function drawGraph(
 
 
     /*
-       Generate points.
+    ============================================
+    Detect ln()
+    ============================================
     */
 
 
-    const xValues = [];
-
-    const yValues = [];
-
-
-    const points = 500;
+    const containsLn =
+        /\bln\s*\(/i.test(
+            functionString
+        );
 
 
     /*
-       For ln(x), we must NEVER
-       calculate x <= 0.
+    ============================================
+    Set graph interval
+    ============================================
     */
 
 
@@ -553,9 +625,11 @@ function drawGraph(
     let graphEnd = end;
 
 
-    if (
-        expression.includes("Math.log")
-    ) {
+    /*
+    ln(x) requires x > 0
+    */
+
+    if (containsLn) {
 
         graphStart =
             Math.max(
@@ -566,14 +640,12 @@ function drawGraph(
     }
 
 
+    /*
+    Add 5% space
+    */
+
     const range =
         graphEnd - graphStart;
-
-
-    /*
-       Add a little space
-       around the interval.
-    */
 
 
     graphStart =
@@ -587,14 +659,11 @@ function drawGraph(
 
 
     /*
-       Make sure ln(x)
-       never receives x <= 0.
+    ln(x) cannot use x <= 0
     */
 
-
     if (
-        expression.includes("Math.log")
-        &&
+        containsLn &&
         graphStart <= 0
     ) {
 
@@ -604,13 +673,23 @@ function drawGraph(
 
 
     /*
-       Generate x and y.
+    ============================================
+    Generate graph points
+    ============================================
     */
+
+
+    const xValues = [];
+
+    const yValues = [];
+
+
+    const numberOfPoints = 500;
 
 
     for (
         let i = 0;
-        i < points;
+        i < numberOfPoints;
         i++
     ) {
 
@@ -623,10 +702,16 @@ function drawGraph(
                 graphEnd -
                 graphStart
             )
+
             *
+
             i
+
             /
-            (points - 1);
+
+            (
+                numberOfPoints - 1
+            );
 
 
         try {
@@ -650,7 +735,9 @@ function drawGraph(
 
         catch {
 
-            // Ignore invalid points
+            /*
+            Ignore invalid points
+            */
 
         }
 
@@ -658,7 +745,9 @@ function drawGraph(
 
 
     /*
-       Check graph data.
+    ============================================
+    Check data
+    ============================================
     */
 
 
@@ -666,10 +755,13 @@ function drawGraph(
         xValues.length === 0
     ) {
 
+
         document.getElementById(
             "error"
         ).textContent =
+
             "Graph error: Function cannot be plotted in this interval.";
+
 
         return;
 
@@ -677,7 +769,9 @@ function drawGraph(
 
 
     /*
-       Function curve.
+    ============================================
+    Function curve
+    ============================================
     */
 
 
@@ -695,7 +789,9 @@ function drawGraph(
 
 
     /*
-       Minimum point.
+    ============================================
+    Minimum point
+    ============================================
     */
 
 
@@ -719,7 +815,9 @@ function drawGraph(
 
 
     /*
-       Graph layout.
+    ============================================
+    Graph layout
+    ============================================
     */
 
 
@@ -749,7 +847,9 @@ function drawGraph(
 
 
     /*
-       Plot.
+    ============================================
+    Plotly
+    ============================================
     */
 
 
