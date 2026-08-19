@@ -35,7 +35,8 @@
             font-weight: bold;
         }
 
-        input {
+        input,
+        select {
             width: 100%;
             padding: 10px;
             margin-top: 5px;
@@ -99,10 +100,11 @@
 
 
 <h3>Group 1</h3>
-<h3>Group Members:</h3>
 
 
 <div class="members">
+
+    <strong>Group Members:</strong>
 
     <ol style="display:inline-block; text-align:left;">
 
@@ -122,7 +124,7 @@
 
 
 <label>
-    Objective Function (Except for the ln function)
+    Objective Function
 </label>
 
 
@@ -132,6 +134,24 @@
     value="x**2-4*x+1"
     placeholder="Example: f(x)=x^2-4x+1"
 >
+
+
+<label>
+    Optimization Type
+</label>
+
+
+<select id="optimization">
+
+    <option value="minimum">
+        Minimum
+    </option>
+
+    <option value="maximum">
+        Maximum
+    </option>
+
+</select>
 
 
 <label>
@@ -186,7 +206,12 @@
 
 <div class="result-box">
 
-    Minimum x =
+    <span id="result-type">
+        Minimum
+    </span>
+
+    x =
+
     <span id="minimum-x"></span>
 
 </div>
@@ -194,7 +219,12 @@
 
 <div class="result-box">
 
-    Minimum f(x) =
+    <span id="result-type-2">
+        Minimum
+    </span>
+
+    f(x) =
+
     <span id="minimum-f"></span>
 
 </div>
@@ -203,6 +233,7 @@
 <div class="result-box">
 
     Iterations =
+
     <span id="iterations"></span>
 
 </div>
@@ -211,6 +242,7 @@
 <div class="result-box">
 
     Theoretical K =
+
     <span id="theoretical-k"></span>
 
 </div>
@@ -219,6 +251,7 @@
 <div class="result-box">
 
     Final interval =
+
     <span id="final-interval"></span>
 
 </div>
@@ -281,19 +314,11 @@ function normalizeFunction(expression) {
     let result = expression.trim();
 
 
-    /*
-    Remove f(x) =
-    */
-
     result = result.replace(
         /^\s*f\s*\(\s*x\s*\)\s*=\s*/i,
         ""
     );
 
-
-    /*
-    Remove y =
-    */
 
     result = result.replace(
         /^\s*y\s*=\s*/i,
@@ -301,19 +326,11 @@ function normalizeFunction(expression) {
     );
 
 
-    /*
-    Remove spaces
-    */
-
     result = result.replace(
         /\s+/g,
         ""
     );
 
-
-    /*
-    x^2 → x**2
-    */
 
     result = result.replace(
         /\^/g,
@@ -321,19 +338,11 @@ function normalizeFunction(expression) {
     );
 
 
-    /*
-    x² → x**2
-    */
-
     result = result.replace(
         /x²/gi,
         "x**2"
     );
 
-
-    /*
-    x³ → x**3
-    */
 
     result = result.replace(
         /x³/gi,
@@ -341,19 +350,11 @@ function normalizeFunction(expression) {
     );
 
 
-    /*
-    4x → 4*x
-    */
-
     result = result.replace(
         /(\d)(x)/gi,
         "$1*$2"
     );
 
-
-    /*
-    2(x+1) → 2*(x+1)
-    */
 
     result = result.replace(
         /(\d)\(/g,
@@ -361,29 +362,17 @@ function normalizeFunction(expression) {
     );
 
 
-    /*
-    x(x+1) → x*(x+1)
-    */
-
     result = result.replace(
         /(x)\(/gi,
         "$1*("
     );
 
 
-    /*
-    )x → )*x
-    */
-
     result = result.replace(
         /\)(x)/gi,
         ")*$1"
     );
 
-
-    /*
-    )( → )*(
-    */
 
     result = result.replace(
         /\)\(/g,
@@ -406,24 +395,22 @@ CALCULATE
 async function calculate() {
 
 
-    /*
-    Get user's original input
-    */
-
     const userInput =
         document.getElementById(
             "function"
         ).value;
 
 
-    /*
-    Automatically correct the function
-    */
-
     const functionString =
         normalizeFunction(
             userInput
         );
+
+
+    const optimization =
+        document.getElementById(
+            "optimization"
+        ).value;
 
 
     const start =
@@ -450,21 +437,35 @@ async function calculate() {
         );
 
 
-    /*
-    Clear previous error
-    */
-
     document.getElementById(
         "error"
     ).textContent = "";
 
 
+    /*
+    Change result title
+    */
+
+    const resultName =
+        optimization === "minimum"
+            ? "Minimum"
+            : "Maximum";
+
+
+    document.getElementById(
+        "result-type"
+    ).textContent =
+        resultName;
+
+
+    document.getElementById(
+        "result-type-2"
+    ).textContent =
+        resultName;
+
+
     try {
 
-
-        /*
-        Send data to Python API
-        */
 
         const response =
             await fetch(
@@ -475,6 +476,9 @@ async function calculate() {
 
                     function:
                         functionString,
+
+                    type:
+                        optimization,
 
                     start:
                         start,
@@ -494,10 +498,6 @@ async function calculate() {
             await response.json();
 
 
-        /*
-        Check API error
-        */
-
         if (!response.ok) {
 
             throw new Error(
@@ -508,11 +508,8 @@ async function calculate() {
 
 
         /*
-        ========================================
         RESULTS
-        ========================================
         */
-
 
         document.getElementById(
             "minimum-x"
@@ -554,11 +551,8 @@ async function calculate() {
 
 
         /*
-        ========================================
         ITERATION TABLE
-        ========================================
         */
-
 
         const table =
             document.getElementById(
@@ -614,20 +608,15 @@ async function calculate() {
                     "</td>";
 
 
-                table.appendChild(
-                    tr
-                );
+                table.appendChild(tr);
 
             }
         );
 
 
         /*
-        ========================================
         GRAPH
-        ========================================
         */
-
 
         drawGraph(
 
@@ -665,7 +654,7 @@ async function calculate() {
 
 /*
 ================================================
-CONVERT FUNCTION FOR GRAPH
+GRAPH FUNCTION CONVERSION
 ================================================
 */
 
@@ -680,19 +669,11 @@ function convertFunctionForGraph(
         );
 
 
-    /*
-    ln(x) → Math.log(x)
-    */
-
     result = result.replace(
         /\bln\s*\(/gi,
         "Math.log("
     );
 
-
-    /*
-    log(x) → Math.log(x)
-    */
 
     result = result.replace(
         /\blog\s*\(/gi,
@@ -700,19 +681,11 @@ function convertFunctionForGraph(
     );
 
 
-    /*
-    sin(x)
-    */
-
     result = result.replace(
         /\bsin\s*\(/gi,
         "Math.sin("
     );
 
-
-    /*
-    cos(x)
-    */
 
     result = result.replace(
         /\bcos\s*\(/gi,
@@ -720,19 +693,11 @@ function convertFunctionForGraph(
     );
 
 
-    /*
-    tan(x)
-    */
-
     result = result.replace(
         /\btan\s*\(/gi,
         "Math.tan("
     );
 
-
-    /*
-    exp(x)
-    */
 
     result = result.replace(
         /\bexp\s*\(/gi,
@@ -797,10 +762,6 @@ function drawGraph(
     }
 
 
-    /*
-    Check ln()
-    */
-
     const containsLn =
         /\bln\s*\(/i.test(
             functionString
@@ -826,10 +787,6 @@ function drawGraph(
 
     }
 
-
-    /*
-    Generate points
-    */
 
     const xValues = [];
 
@@ -894,10 +851,6 @@ function drawGraph(
     }
 
 
-    /*
-    No valid points
-    */
-
     if (
         xValues.length === 0
     ) {
@@ -933,10 +886,10 @@ function drawGraph(
 
 
     /*
-    Minimum point
+    Optimization point
     */
 
-    const minimumTrace = {
+    const resultTrace = {
 
         x: [minimumX],
 
@@ -944,7 +897,7 @@ function drawGraph(
 
         mode: "markers",
 
-        name: "Approx. Minimum",
+        name: resultPointName(),
 
         marker: {
 
@@ -955,14 +908,25 @@ function drawGraph(
     };
 
 
-    /*
-    Graph layout
-    */
-
     const layout = {
 
         title:
-            "f(x) = " +
+
+            (
+                document.getElementById(
+                    "optimization"
+                ).value === "minimum"
+
+                ? "Minimum"
+
+                : "Maximum"
+
+            )
+
+            +
+
+            ": f(x) = " +
+
             functionString,
 
         xaxis: {
@@ -984,17 +948,13 @@ function drawGraph(
     };
 
 
-    /*
-    Draw Plotly graph
-    */
-
     Plotly.newPlot(
 
         "plot",
 
         [
             functionTrace,
-            minimumTrace
+            resultTrace
         ],
 
         layout,
@@ -1004,6 +964,35 @@ function drawGraph(
         }
 
     );
+
+}
+
+
+
+/*
+================================================
+POINT NAME
+================================================
+*/
+
+function resultPointName() {
+
+    const optimization =
+        document.getElementById(
+            "optimization"
+        ).value;
+
+
+    if (
+        optimization === "minimum"
+    ) {
+
+        return "Approx. Minimum";
+
+    }
+
+
+    return "Approx. Maximum";
 
 }
 
