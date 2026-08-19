@@ -1,104 +1,166 @@
 from http.server import BaseHTTPRequestHandler
+import urllib.parse
 import json
 import math
-import urllib.parse
 
 
-# =========================================================
-# Evaluate objective function
-# =========================================================
+# ============================================================
+# Evaluate mathematical function
+# ============================================================
 
-def evaluate_function(function_string, x):
-
-    # Convert common mathematical notation
-    expression = function_string
+def evaluate_function(expression, x):
 
     expression = expression.replace("^", "**")
 
-    allowed = {
-        "__builtins__": {},
-
+    allowed_functions = {
         "x": x,
-
-        "math": math,
-
-        # Logarithm
         "ln": math.log,
         "log": math.log,
-
-        # Other common functions
-        "exp": math.exp,
         "sin": math.sin,
         "cos": math.cos,
         "tan": math.tan,
-
-        # Constants
+        "exp": math.exp,
+        "sqrt": math.sqrt,
+        "abs": abs,
         "pi": math.pi,
         "e": math.e
     }
 
     return eval(
         expression,
-        allowed
+        {"__builtins__": {}},
+        allowed_functions
     )
 
 
-# =========================================================
+# ============================================================
 # Golden Section Search
-# =========================================================
+# ============================================================
 
 def golden_section_search(
-    function_string,
-    start,
-    end,
-    tolerance
+    expression,
+    a,
+    b,
+    tolerance,
+    optimization_type
 ):
 
-    phi = (math.sqrt(5) - 1) / 2
+    phi = (1 + math.sqrt(5)) / 2
 
-    a = start
-    b = end
-
-    initial_length = b - a
-
-    # Theoretical K
+    # Theoretical number of iterations
     theoretical_k = math.ceil(
         math.log(
-            tolerance / initial_length
+            tolerance / abs(b - a)
         )
         /
-        math.log(phi)
+        math.log(1 / phi)
+    )
+
+    # Initial points
+    x1 = b - (b - a) / phi
+    x2 = a + (b - a) / phi
+
+    f1 = evaluate_function(
+        expression,
+        x1
+    )
+
+    f2 = evaluate_function(
+        expression,
+        x2
     )
 
     iteration_table = []
 
     iteration = 0
 
+
+    # ========================================================
+    # Search
+    # ========================================================
+
     while abs(b - a) > tolerance:
 
         iteration += 1
 
-        x1 = b - phi * (b - a)
 
-        x2 = a + phi * (b - a)
+        # ----------------------------------------------------
+        # MINIMUM
+        # ----------------------------------------------------
 
-        f_x1 = evaluate_function(
-            function_string,
-            x1
-        )
+        if optimization_type == "minimum":
 
-        f_x2 = evaluate_function(
-            function_string,
-            x2
-        )
+            if f1 < f2:
 
-        if f_x1 < f_x2:
+                b = x2
 
-            b = x2
+                x2 = x1
 
-        else:
+                f2 = f1
 
-            a = x1
+                x1 = b - (b - a) / phi
+
+                f1 = evaluate_function(
+                    expression,
+                    x1
+                )
+
+            else:
+
+                a = x1
+
+                x1 = x2
+
+                f1 = f2
+
+                x2 = a + (b - a) / phi
+
+                f2 = evaluate_function(
+                    expression,
+                    x2
+                )
+
+
+        # ----------------------------------------------------
+        # MAXIMUM
+        # ----------------------------------------------------
+
+        elif optimization_type == "maximum":
+
+            if f1 > f2:
+
+                b = x2
+
+                x2 = x1
+
+                f2 = f1
+
+                x1 = b - (b - a) / phi
+
+                f1 = evaluate_function(
+                    expression,
+                    x1
+                )
+
+            else:
+
+                a = x1
+
+                x1 = x2
+
+                f1 = f2
+
+                x2 = a + (b - a) / phi
+
+                f2 = evaluate_function(
+                    expression,
+                    x2
+                )
+
+
+        # ----------------------------------------------------
+        # Save iteration
+        # ----------------------------------------------------
 
         iteration_table.append({
 
@@ -108,34 +170,54 @@ def golden_section_search(
 
             "x2": x2,
 
-            "f(x1)": f_x1,
+            "f(x1)": f1,
 
-            "f(x2)": f_x2,
+            "f(x2)": f2,
 
             "a": a,
 
             "b": b,
 
-            "interval_length": b - a
+            "interval_length": abs(b - a)
 
         })
 
 
-    # Approximate minimum
+    # ========================================================
+    # Final result
+    # ========================================================
 
-    x_min = (a + b) / 2
+    if optimization_type == "minimum":
 
-    f_min = evaluate_function(
-        function_string,
-        x_min
-    )
+        if f1 < f2:
+
+            minimum_x = x1
+            minimum_f = f1
+
+        else:
+
+            minimum_x = x2
+            minimum_f = f2
+
+
+    else:
+
+        if f1 > f2:
+
+            minimum_x = x1
+            minimum_f = f1
+
+        else:
+
+            minimum_x = x2
+            minimum_f = f2
 
 
     return {
 
-        "minimum_x": x_min,
+        "minimum_x": minimum_x,
 
-        "minimum_f": f_min,
+        "minimum_f": minimum_f,
 
         "iterations": iteration,
 
@@ -151,46 +233,45 @@ def golden_section_search(
     }
 
 
-# =========================================================
+# ============================================================
 # Vercel API
-# =========================================================
+# ============================================================
 
 class handler(BaseHTTPRequestHandler):
-
 
     def do_GET(self):
 
         try:
 
-            # Read URL parameters
+            # ------------------------------------------------
+            # Read query parameters
+            # ------------------------------------------------
 
-            parsed_url = urllib.parse.urlparse(
+            query = urllib.parse.urlparse(
                 self.path
+            ).query
+
+            params = urllib.parse.parse_qs(
+                query
             )
 
-            query = urllib.parse.parse_qs(
-                parsed_url.query
-            )
 
-
-            # Get user inputs
-
-            function_string = query.get(
+            expression = params.get(
                 "function",
-                ["ln(x)-4*x+5"]
+                ["x**2"]
             )[0]
 
 
-            start = float(
-                query.get(
+            a = float(
+                params.get(
                     "start",
-                    ["1"]
+                    ["0"]
                 )[0]
             )
 
 
-            end = float(
-                query.get(
+            b = float(
+                params.get(
                     "end",
                     ["10"]
                 )[0]
@@ -198,82 +279,41 @@ class handler(BaseHTTPRequestHandler):
 
 
             tolerance = float(
-                query.get(
+                params.get(
                     "tolerance",
                     ["0.0001"]
                 )[0]
             )
 
 
-            # Validate interval
-
-            if start >= end:
-
-                raise ValueError(
-                    "Start of interval must be less than end."
-                )
+            optimization_type = params.get(
+                "type",
+                ["minimum"]
+            )[0]
 
 
-            if tolerance <= 0:
-
-                raise ValueError(
-                    "Tolerance must be greater than zero."
-                )
-
-
-            # =================================================
-            # Check function domain
-            # =================================================
-
-            test_points = [
-
-                start,
-
-                start + (end - start) * 0.25,
-
-                start + (end - start) * 0.5,
-
-                start + (end - start) * 0.75,
-
-                end
-
-            ]
-
-
-            for test_x in test_points:
-
-                test_y = evaluate_function(
-                    function_string,
-                    test_x
-                )
-
-                if not math.isfinite(test_y):
-
-                    raise ValueError(
-                        "The function is not valid in this interval."
-                    )
-
-
-            # =================================================
+            # ------------------------------------------------
             # Run Golden Section Search
-            # =================================================
+            # ------------------------------------------------
 
             result = golden_section_search(
 
-                function_string,
+                expression,
 
-                start,
+                a,
 
-                end,
+                b,
 
-                tolerance
+                tolerance,
+
+                optimization_type
 
             )
 
 
-            # =================================================
-            # Send JSON response
-            # =================================================
+            # ------------------------------------------------
+            # Return JSON
+            # ------------------------------------------------
 
             response = json.dumps(
                 result
@@ -282,19 +322,16 @@ class handler(BaseHTTPRequestHandler):
 
             self.send_response(200)
 
-
             self.send_header(
                 "Content-Type",
                 "application/json"
             )
-
 
             self.send_header(
                 "Access-Control-Allow-Origin",
                 "*"
             )
 
-
             self.end_headers()
 
 
@@ -303,28 +340,25 @@ class handler(BaseHTTPRequestHandler):
             )
 
 
-        except Exception as error:
-
-
-            response = json.dumps({
-
-                "error": str(error)
-
-            })
-
+        except Exception as e:
 
             self.send_response(400)
-
 
             self.send_header(
                 "Content-Type",
                 "application/json"
             )
 
-
             self.end_headers()
 
 
+            error_response = json.dumps({
+
+                "error": str(e)
+
+            })
+
+
             self.wfile.write(
-                response.encode()
+                error_response.encode()
             )
